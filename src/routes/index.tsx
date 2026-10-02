@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import {
-  Check, Clock, Compass, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight,
+  Check, Clock, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight,
 } from "lucide-react";
+import logoAsset from "@/assets/logo.png.asset.json";
+import heroAsset from "@/assets/background.png.asset.json";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC = "Architekto atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 48–72 val.";
