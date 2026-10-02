@@ -192,7 +192,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     const r = schema.safeParse(Object.fromEntries(new FormData(e.currentTarget)));
     const errs: Record<string, string> = {};
     if (!r.success) r.error.issues.forEach((i) => { errs[String(i.path[0])] = i.message; });
-    if (tooBig) errs.files = "Failų dydis viršija 25 MB";
+    if (tooBig) errs["files"] = "Failų dydis viršija 25 MB";
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setPaying(true);
