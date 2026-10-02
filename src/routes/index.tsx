@@ -2,8 +2,10 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import {
-  Check, Clock, Compass, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight,
+  Check, Clock, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight,
 } from "lucide-react";
+import logoAsset from "@/assets/logo.png.asset.json";
+import heroAsset from "@/assets/background.png.asset.json";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC = "Architekto atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 48–72 val.";
@@ -38,9 +40,8 @@ const NAV = [
 
 function Logo() {
   return (
-    <a href="#" className="flex items-center gap-2 font-display text-lg font-bold tracking-tight">
-      <span className="grid h-8 w-8 place-items-center rounded bg-primary text-primary-foreground"><Compass className="h-4 w-4" /></span>
-      PADELIOK<span className="text-primary">.LT</span>
+    <a href="#" className="flex items-center">
+      <img src={logoAsset.url} alt="padeliOK.lt" className="h-7 w-auto" />
     </a>
   );
 }
@@ -69,8 +70,9 @@ function Index() {
         </div>
       </header>
 
-      <section id="apie" className="blueprint-grid border-b border-border">
-        <div className="mx-auto max-w-6xl px-5 py-20 md:py-28">
+      <section id="apie" className="relative border-b border-border bg-cover bg-center" style={{ backgroundImage: `url(${heroAsset.url})` }}>
+        <div className="absolute inset-0 bg-background/75" />
+        <div className="relative mx-auto max-w-6xl px-5 py-20 md:py-28">
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-muted-foreground">
             <MapPin className="h-3 w-3" /> Kaunas · Kauno rajonas
           </p>
