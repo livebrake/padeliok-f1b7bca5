@@ -6,6 +6,7 @@ import {
 } from "lucide-react";
 import logoAsset from "@/assets/logo.png.asset.json";
 import heroAsset from "@/assets/background.png.asset.json";
+import { submitOrder } from "@/lib/orders.functions";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC = "Architekto atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 48–72 val.";
@@ -56,7 +57,7 @@ function Btn({ children, variant = "primary", className = "", ...p }: React.Butt
 function Index() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [doc, setDoc] = useState<null | "sutartis" | "privatumas">(null);
-  const [done, setDone] = useState(false);
+  const [done, setDone] = useState<string | false>(false);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -138,7 +139,7 @@ function Index() {
         <p className="mt-10 text-xs text-muted-foreground">© {new Date().getFullYear()} padeliOK.lt</p>
       </footer>
 
-      {plan && <Modal onClose={() => setPlan(null)}>{done ? <Success onClose={() => setPlan(null)} /> : <Order plan={plan} setPlan={setPlan} onPaid={() => setDone(true)} />}</Modal>}
+      {plan && <Modal onClose={() => setPlan(null)}>{done ? <Success orderId={done} onClose={() => setPlan(null)} /> : <Order plan={plan} setPlan={setPlan} onPaid={(id) => setDone(id)} />}</Modal>}
       {doc && (
         <Modal onClose={() => setDoc(null)}>
           <div className="p-8">
@@ -181,7 +182,7 @@ const schema = z.object({
 });
 const MAX = 25 * 1024 * 1024;
 
-function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => void; onPaid: () => void }) {
+function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
@@ -189,16 +190,25 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const total = [...rc, ...ribos].reduce((s, f) => s + f.size, 0);
   const tooBig = total > MAX;
 
-  const submit = (e: React.FormEvent<HTMLFormElement>) => {
+  const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const r = schema.safeParse(Object.fromEntries(new FormData(e.currentTarget)));
+    const fd = new FormData(e.currentTarget);
+    const r = schema.safeParse(Object.fromEntries(fd));
     const errs: Record<string, string> = {};
     if (!r.success) r.error.issues.forEach((i) => { errs[String(i.path[0])] = i.message; });
     if (tooBig) errs["files"] = "Failų dydis viršija 25 MB";
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setPaying(true);
-    setTimeout(onPaid, 1200);
+    fd.set("plan", plan.id);
+    [...rc, ...ribos].forEach((f) => fd.append("files", f));
+    try {
+      const res = await submitOrder({ data: fd });
+      onPaid(res.orderNumber);
+    } catch {
+      setErrors({ submit: "Nepavyko pateikti užsakymo. Bandykite dar kartą." });
+      setPaying(false);
+    }
   };
 
   const field = (name: string, label: string, type = "text") => (
@@ -241,7 +251,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         <div className="flex justify-between text-sm"><span>Planas „{plan.name}“</span><span>{plan.price} €</span></div>
         <div className="flex justify-between border-t border-border pt-4 font-display text-xl font-bold"><span>Iš viso</span><span>{plan.price} €</span></div>
         <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
-        <Btn type="submit" disabled={paying} className="mt-auto w-full py-3">{paying ? "Apdorojama…" : "Apmokėti (Stripe / Mokėjimai)"}</Btn>
+        {errors["submit"] && <p className="text-xs text-destructive">{errors["submit"]}</p>}
+        <Btn type="submit" disabled={paying} className="mt-auto w-full py-3">{paying ? "Siunčiama…" : "Pateikti užsakymą"}</Btn>
       </aside>
     </form>
   );
@@ -275,13 +286,13 @@ function Drop({ label, accept, hint, files, setFiles }: { label: string; accept:
   );
 }
 
-function Success({ onClose }: { onClose: () => void }) {
+function Success({ onClose, orderId }: { onClose: () => void; orderId: string }) {
   return (
     <div className="p-10 text-center md:p-16">
       <CheckCircle2 className="mx-auto h-16 w-16 text-success" />
-      <h2 className="mt-5 text-2xl font-bold md:text-3xl">Apmokėjimas sėkmingas! Užsakymas gautas.</h2>
+      <h2 className="mt-5 text-2xl font-bold md:text-3xl">Užsakymas gautas!</h2>
       <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
-        Jūsų užsakymo ID: <span className="font-mono font-medium text-foreground">#PAD-84920</span>. Architektas jau pradedamas nagrinėti sklypo dokumentus. Atsakymą gaunate nurodytu el. paštu.
+        Jūsų užsakymo ID: <span className="font-mono font-medium text-foreground">#{orderId}</span>. Architektas jau pradedamas nagrinėti sklypo dokumentus. Atsakymą gaunate nurodytu el. paštu.
       </p>
       <Btn className="mt-8" onClick={onClose}>Grįžti į pradžią</Btn>
     </div>
