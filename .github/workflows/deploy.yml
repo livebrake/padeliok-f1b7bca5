@@ -31,6 +31,7 @@ jobs:
       - name: Build project
         run: |
           npm run build
+          ls -la .output/public || true
           touch .output/public/.nojekyll
           cp .output/public/index.html .output/public/404.html || true
 
