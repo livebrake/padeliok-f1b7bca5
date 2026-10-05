@@ -29,7 +29,12 @@ jobs:
         run: npm install --legacy-peer-deps
 
       - name: Build project
-        run: npm run build
+        run: |
+        npm run build
+        # Patikriname, kuris aplankas buvo sugeneruotas:
+        ls -la
+        ls -la .output/ || true
+        ls -la dist/ || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
@@ -37,7 +42,7 @@ jobs:
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3
         with:
-          path: './dist'
+          path: './.output/public'
 
       - name: Deploy to GitHub Pages
         id: deployment
