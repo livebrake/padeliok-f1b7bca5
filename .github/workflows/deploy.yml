@@ -2,7 +2,7 @@ name: Deploy to GitHub Pages
 
 on:
   push:
-    branches: [ main ] # Jei jūsų šaka master, pakeiskite į master
+    branches: [ main ]
 
 permissions:
   contents: read
@@ -30,11 +30,10 @@ jobs:
 
       - name: Build project
         run: |
-        npm run build
-        # Patikriname, kuris aplankas buvo sugeneruotas:
-        ls -la
-        ls -la .output/ || true
-        ls -la dist/ || true
+          npm run build
+          ls -la
+          ls -la .output/ || true
+          ls -la dist/ || true
 
       - name: Setup Pages
         uses: actions/configure-pages@v4
