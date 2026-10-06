@@ -172,53 +172,76 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
 }
 
 const schema = z.object({
-  vardas: z.string().trim().min(1, "Įveskite vardą").max(60),
-  pavarde: z.string().trim().min(1, "Įveskite pavardę").max(60),
-  email: z.string().trim().email("Neteisingas el. paštas").max(255),
-  tel: z.string().trim().regex(/^\+?[0-9 ]{8,15}$/, "Neteisingas telefono numeris"),
+  fullName: z.string().trim().min(1, "Prašome įvesti savo vardą ir pavardę.").max(120),
+  email: z.string().trim().min(1, "Prašome įvesti el. pašto adresą.").email("Įveskite galiojantį el. pašto adresą (pvz., vardas@pavyzdys.lt).").max(255),
+  phone: z.string().trim().min(1, "Prašome įvesti telefono numerį.").regex(/^\+?[0-9\s()-]{8,20}$/, "Įveskite teisingą telefono numerį (pvz., +37060000000)."),
   komentaras: z.string().max(1000).optional(),
 });
-const MAX = 25 * 1024 * 1024;
+const MAX_FILE = 20 * 1024 * 1024;
+const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
+const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
+const MSG = {
+  storage: "Nepavyko įkelti failo. Patikrinkite failą ir bandykite dar kartą.",
+  database: "Nepavyko išsaugoti užsakymo duomenų bazėje. Bandykite dar kartą.",
+  validation: "Patikrinkite formos laukus ir bandykite dar kartą.",
+  network: "Tinklo klaida. Patikrinkite interneto ryšį ir bandykite vėl.",
+};
 
 function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
   const [paying, setPaying] = useState(false);
-  const total = [...rc, ...ribos].reduce((s, f) => s + f.size, 0);
-  const tooBig = total > MAX;
+  const all = [...rc, ...ribos];
+  const total = all.reduce((s, f) => s + f.size, 0);
+
+  const fileError = (files: File[]) => {
+    if (!files.length) return "Būtina įkelti užsakymo dokumentą/failą.";
+    if (files.some((f) => !FILE_EXT.test(f.name))) return "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
+    if (files.some((f) => f.size > MAX_FILE)) return "Failas per didelis. Maksimalus leistinas dydis yra 20 MB.";
+    return null;
+  };
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const fd = new FormData(e.currentTarget);
+    if (paying) return;
+    const form = e.currentTarget;
+    const fd = new FormData(form);
     const r = schema.safeParse(Object.fromEntries(fd));
     const errs: Record<string, string> = {};
-    if (!r.success) r.error.issues.forEach((i) => { errs[String(i.path[0])] = i.message; });
-    if (tooBig) errs["files"] = "Failų dydis viršija 25 MB";
+    if (!r.success) r.error.issues.forEach((i) => { const k = String(i.path[0]); if (!errs[k]) errs[k] = i.message; });
+    const fe = fileError(all);
+    if (fe) errs["files"] = fe;
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setPaying(true);
     fd.set("plan", plan.id);
-    [...rc, ...ribos].forEach((f) => fd.append("files", f));
+    all.forEach((f) => fd.append("files", f));
     try {
       const res = await submitOrder({ data: fd });
+      if (!res.ok) { toast.error(MSG[res.code]); setPaying(false); return; }
+      form.reset(); setRc([]); setRibos([]); setErrors({});
+      toast.success("Jūsų užsakymas sėkmingai gautas! Susisieksime su jumis artimiausiu metu.");
       onPaid(res.orderNumber);
     } catch {
-      setErrors({ submit: "Nepavyko pateikti užsakymo. Bandykite dar kartą." });
+      toast.error(MSG.network);
       setPaying(false);
     }
   };
 
-  const field = (name: string, label: string, type = "text") => (
+  const clear = (name: string) => errors[name] && setErrors((p) => { const n = { ...p }; delete n[name]; return n; });
+  const inputCls = (name: string) =>
+    `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
+  const field = (name: string, label: string, type = "text", placeholder = "") => (
     <label className="block text-sm">
       <span className="font-medium">{label}</span>
-      <input name={name} type={type} maxLength={255} className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
-      {errors[name] && <span className="text-xs text-destructive">{errors[name]}</span>}
+      <input name={name} type={type} maxLength={255} placeholder={placeholder} aria-invalid={!!errors[name]} onChange={() => clear(name)} className={inputCls(name)} />
+      {errors[name] && <span role="alert" className="mt-1 block text-xs text-destructive">{errors[name]}</span>}
     </label>
   );
 
   return (
-    <form onSubmit={submit} className="grid md:grid-cols-[1fr_300px]">
+    <form onSubmit={submit} noValidate className="grid md:grid-cols-[1fr_300px]">
       <div className="space-y-5 p-6 md:p-8">
         <h2 className="text-2xl font-bold">Krepšelis</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -229,19 +252,20 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           ))}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          {field("vardas", "Vardas")}{field("pavarde", "Pavardė")}
-          {field("email", "El. pašto adresas", "email")}{field("tel", "Telefono numeris", "tel")}
+          <div className="sm:col-span-2">{field("fullName", "Vardas ir pavardė")}</div>
+          {field("email", "El. pašto adresas", "email", "vardas@pavyzdys.lt")}{field("phone", "Telefono numeris", "tel", "+37060000000")}
         </div>
         <label className="block text-sm">
-          <span className="font-medium">Komentaras / Papildoma informacija</span>
+          <span className="font-medium">Komentaras / Papildoma informacija <span className="text-muted-foreground">(neprivaloma)</span></span>
           <textarea name="komentaras" maxLength={1000} rows={3} placeholder="Arba klausimai architektui…" className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring" />
         </label>
-        <div className="grid gap-4 sm:grid-cols-2">
-          <Drop label="Registrų centro išrašas" accept=".pdf,.jpg,.jpeg,.png" hint="PDF, JPG, PNG" files={rc} setFiles={setRc} />
-          <Drop label="Žemės sklypo ribų planas" accept=".pdf,.dwg,.zip,.jpg,.jpeg" hint="PDF, DWG, ZIP, JPG" files={ribos} setFiles={setRibos} />
+        <div className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}>
+          <Drop label="Registrų centro išrašas" accept={ACCEPT} hint="PDF, PNG, JPG, DOCX" files={rc} setFiles={(f) => { setRc(f); clear("files"); }} />
+          <Drop label="Žemės sklypo ribų planas" accept={ACCEPT} hint="PDF, PNG, JPG, DOCX" files={ribos} setFiles={(f) => { setRibos(f); clear("files"); }} />
         </div>
-        <p className={`text-xs ${tooBig ? "text-destructive" : "text-muted-foreground"}`}>
-          Maksimalus bendras failų dydis – 25 MB. Įkelta: {(total / 1024 / 1024).toFixed(1)} MB
+        {errors["files"] && <p role="alert" className="text-xs text-destructive">{errors["files"]}</p>}
+        <p className="text-xs text-muted-foreground">
+          Maksimalus vieno failo dydis – 20 MB. Įkelta: {(total / 1024 / 1024).toFixed(1)} MB
         </p>
       </div>
       <aside className="flex flex-col gap-4 rounded-b-lg border-t border-border bg-muted/60 p-6 md:rounded-r-lg md:rounded-bl-none md:border-l md:border-t-0 md:p-8">
