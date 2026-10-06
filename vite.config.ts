@@ -7,4 +7,7 @@ export default defineConfig({
   tanstackStart: {
     server: { entry: "server" },
   },
+  nitro: {
+    preset: "vercel", // <--- Pridedame šią eilutę, kad sugeneruotų Vercel palaikomas funkcijas
+  },
 });
