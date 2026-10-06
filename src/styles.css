@@ -5,35 +5,35 @@
 /* Satoshi — Fontshare, © Indian Type Foundry (free license) */
 @font-face {
   font-family: "Satoshi";
-  src: url("/__l5e/assets-v1/3e88b819-6f5c-4e02-9f5e-bf6f39fbc7ed/Satoshi-Light.woff2") format("woff2");
+  src: url("/fonts/Satoshi-Light.woff2") format("woff2");
   font-weight: 300;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Satoshi";
-  src: url("/__l5e/assets-v1/47e26544-8173-4f84-a7ce-206cc0002be0/Satoshi-Regular.woff2") format("woff2");
+  src: url("/fonts/Satoshi-Regular.woff2") format("woff2");
   font-weight: 400;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Satoshi";
-  src: url("/__l5e/assets-v1/46b42835-d6db-4eb9-aabd-38233db78bcf/Satoshi-Medium.woff2") format("woff2");
+  src: url("/fonts/Satoshi-Medium.woff2") format("woff2");
   font-weight: 500;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Satoshi";
-  src: url("/__l5e/assets-v1/8dba9494-f7ac-46ff-b549-d97625d4caf5/Satoshi-Bold.woff2") format("woff2");
+  src: url("/fonts/Satoshi-Bold.woff2") format("woff2");
   font-weight: 700;
   font-style: normal;
   font-display: swap;
 }
 @font-face {
   font-family: "Satoshi";
-  src: url("/__l5e/assets-v1/a7a84091-fdce-4e86-bfbf-c6fecf9b8e05/Satoshi-Black.woff2") format("woff2");
+  src: url("/fonts/Satoshi-Black.woff2") format("woff2");
   font-weight: 900;
   font-style: normal;
   font-display: swap;

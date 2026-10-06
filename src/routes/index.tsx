@@ -4,8 +4,6 @@ import { z } from "zod";
 import {
   Check, Clock, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight,
 } from "lucide-react";
-import logoAsset from "@/assets/logo.png.asset.json";
-import heroAsset from "@/assets/background.png.asset.json";
 import { submitOrder } from "@/lib/orders.functions";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
@@ -42,7 +40,7 @@ const NAV = [
 function Logo() {
   return (
     <a href="#" className="flex items-center">
-      <img src={logoAsset.url} alt="padeliOK.lt" className="h-7 w-auto" />
+      <img src="/logo.png" alt="padeliOK.lt" className="h-7 w-auto" />
     </a>
   );
 }
@@ -71,7 +69,7 @@ function Index() {
         </div>
       </header>
 
-      <section id="apie" className="relative border-b border-border bg-cover bg-center" style={{ backgroundImage: `url(${heroAsset.url})` }}>
+      <section id="apie" className="relative border-b border-border bg-cover bg-center" style={{ backgroundImage: `url(/hero-bg.png)` }}>
         <div className="absolute inset-0 bg-background/75" />
         <div className="relative mx-auto max-w-6xl px-5 py-20 md:py-28">
           <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-muted-foreground">
