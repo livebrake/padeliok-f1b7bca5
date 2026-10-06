@@ -2,8 +2,9 @@ import { createFileRoute } from "@tanstack/react-router";
 import { useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import {
-  Check, Clock, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight,
+  Check, Clock, FileText, MapPin, Upload, X, CheckCircle2, Mail, Phone, ArrowRight, Loader2,
 } from "lucide-react";
+import { toast } from "sonner";
 import { submitOrder } from "@/lib/orders.functions";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
@@ -273,8 +274,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         <div className="flex justify-between text-sm"><span>Planas „{plan.name}“</span><span>{plan.price} €</span></div>
         <div className="flex justify-between border-t border-border pt-4 font-display text-xl font-bold"><span>Iš viso</span><span>{plan.price} €</span></div>
         <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
-        {errors["submit"] && <p className="text-xs text-destructive">{errors["submit"]}</p>}
-        <Btn type="submit" disabled={paying} className="mt-auto w-full py-3">{paying ? "Siunčiama…" : "Pateikti užsakymą"}</Btn>
+        <Btn type="submit" disabled={paying} aria-busy={paying} className="mt-auto w-full py-3 disabled:opacity-70">
+          {paying ? <span className="inline-flex items-center justify-center gap-2"><Loader2 className="h-4 w-4 animate-spin" />Siunčiama…</span> : "Pateikti užsakymą"}
+        </Btn>
       </aside>
     </form>
   );
