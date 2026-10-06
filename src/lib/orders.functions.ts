@@ -7,31 +7,44 @@ const PRICES: Record<string, { name: string; price: number }> = {
   premium: { name: "Premium", price: 199 },
 };
 
+const sanitize = (s: string) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
+
 const fields = z.object({
   plan: z.string().max(50),
-  vardas: z.string().trim().min(1).max(100),
-  pavarde: z.string().trim().min(1).max(100),
+  fullName: z.string().trim().min(1).max(120),
   email: z.string().trim().email().max(255),
-  tel: z.string().trim().min(5).max(30),
+  phone: z.string().trim().regex(/^\+?[0-9\s()-]{8,20}$/),
   komentaras: z.string().max(1000).optional().default(""),
 });
 
-const MAX = 25 * 1024 * 1024;
+const MAX_FILE = 20 * 1024 * 1024;
+const EXT = /\.(pdf|png|jpe?g|docx)$/i;
+
+export type SubmitResult =
+  | { ok: true; orderNumber: string }
+  | { ok: false; code: "validation" | "storage" | "database" };
 
 export const submitOrder = createServerFn({ method: "POST" })
   .inputValidator((data) => {
     if (!(data instanceof FormData)) throw new Error("Invalid form data");
     return data;
   })
-  .handler(async ({ data }) => {
-    const f = fields.parse({
-      plan: data.get("plan"), vardas: data.get("vardas"), pavarde: data.get("pavarde"),
-      email: data.get("email"), tel: data.get("tel"), komentaras: data.get("komentaras") ?? "",
+  .handler(async ({ data }): Promise<SubmitResult> => {
+    const parsed = fields.safeParse({
+      plan: data.get("plan"), fullName: data.get("fullName"), email: data.get("email"),
+      phone: data.get("phone"), komentaras: data.get("komentaras") ?? "",
     });
+    if (!parsed.success) return { ok: false, code: "validation" };
+    const f = parsed.data;
     const plan = PRICES[f.plan.toLowerCase()];
-    if (!plan) throw new Error("Nežinomas planas");
+    if (!plan) return { ok: false, code: "validation" };
     const files = data.getAll("files").filter((x): x is File => x instanceof File && x.size > 0);
-    if (files.length > 20 || files.reduce((s, x) => s + x.size, 0) > MAX) throw new Error("Failų dydis viršija 25 MB");
+    if (!files.length || files.length > 20 || files.some((x) => x.size > MAX_FILE || !EXT.test(x.name)))
+      return { ok: false, code: "validation" };
+
+    const name = sanitize(f.fullName).split(/\s+/);
+    const first = name.shift() ?? "";
+    const last = name.join(" ");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const orderNumber = `PAD-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
@@ -42,14 +55,14 @@ export const submitOrder = createServerFn({ method: "POST" })
       const { error } = await supabaseAdmin.storage.from("order-documents").upload(path, file, {
         contentType: file.type || "application/octet-stream",
       });
-      if (error) throw new Error("Nepavyko įkelti failo");
+      if (error) { console.error("storage upload failed", error); return { ok: false, code: "storage" }; }
       paths.push(path);
     }
     const { error } = await supabaseAdmin.from("orders").insert({
       order_number: orderNumber, plan_id: f.plan.toLowerCase(), plan_name: plan.name, price: plan.price,
-      first_name: f.vardas, last_name: f.pavarde, email: f.email, phone: f.tel,
-      comment: f.komentaras || null, file_paths: paths,
+      first_name: first, last_name: last, email: f.email, phone: f.phone,
+      comment: sanitize(f.komentaras) || null, file_paths: paths,
     });
-    if (error) throw new Error("Nepavyko išsaugoti užsakymo");
-    return { orderNumber };
+    if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
+    return { ok: true, orderNumber };
   });
