@@ -15,6 +15,13 @@
       "when": 1791361016479,
       "tag": "0001_add_company_fields",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1791374161644,
+      "tag": "0002_admin_roles",
+      "breakpoints": true
     }
   ]
 }

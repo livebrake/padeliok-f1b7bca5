@@ -10,33 +10,53 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as MiskoSkydasIndexRouteImport } from './routes/misko-skydas.index'
+import { Route as MiskoSkydasJungtisRouteImport } from './routes/misko-skydas.jungtis'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MiskoSkydasIndexRoute = MiskoSkydasIndexRouteImport.update({
+  id: '/misko-skydas/',
+  path: '/misko-skydas/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const MiskoSkydasJungtisRoute = MiskoSkydasJungtisRouteImport.update({
+  id: '/misko-skydas/jungtis',
+  path: '/misko-skydas/jungtis',
+  getParentRoute: () => rootRouteImport,
+} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
+  '/misko-skydas/': typeof MiskoSkydasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
+  '/misko-skydas': typeof MiskoSkydasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
+  '/misko-skydas/': typeof MiskoSkydasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/'
+  fullPaths: '/' | '/misko-skydas/jungtis' | '/misko-skydas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/'
-  id: '__root__' | '/'
+  to: '/' | '/misko-skydas/jungtis' | '/misko-skydas'
+  id: '__root__' | '/' | '/misko-skydas/jungtis' | '/misko-skydas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  MiskoSkydasJungtisRoute: typeof MiskoSkydasJungtisRoute
+  MiskoSkydasIndexRoute: typeof MiskoSkydasIndexRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -48,11 +68,27 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof IndexRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/misko-skydas/': {
+      id: '/misko-skydas/'
+      path: '/misko-skydas'
+      fullPath: '/misko-skydas/'
+      preLoaderRoute: typeof MiskoSkydasIndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/misko-skydas/jungtis': {
+      id: '/misko-skydas/jungtis'
+      path: '/misko-skydas/jungtis'
+      fullPath: '/misko-skydas/jungtis'
+      preLoaderRoute: typeof MiskoSkydasJungtisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  MiskoSkydasJungtisRoute: MiskoSkydasJungtisRoute,
+  MiskoSkydasIndexRoute: MiskoSkydasIndexRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
