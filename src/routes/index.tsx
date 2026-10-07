@@ -270,7 +270,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     const errs: Record<string, string> = {};
     if (!r.success) r.error.issues.forEach((i) => { const k = String(i.path[0]); if (!errs[k]) errs[k] = i.message; });
     const fn = String(fd.get("fullName") ?? "").trim();
-    if (!isCo && !errs.fullName && fn.split(/\s+/).length < 2) errs.fullName = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";
+    if (!isCo && !errs["fullName"] && fn.split(/\s+/).length < 2) errs["fullName"] = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";
     if (isCo) {
       const cs = noVat ? companySchema.omit({ vatCode: true }) : companySchema;
       const cr = cs.safeParse(Object.fromEntries(fd));
