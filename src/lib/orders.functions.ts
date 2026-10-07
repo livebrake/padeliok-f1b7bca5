@@ -43,6 +43,19 @@ export const submitOrder = createServerFn({ method: "POST" })
     });
     if (!parsed.success) return { ok: false, code: "validation" };
     const f = parsed.data;
+    const isCo = data.get("clientType") === "juridinis";
+    const noVat = data.get("noVat") === "1";
+    const str = (k: string) => sanitize(String(data.get(k) ?? "")).replace(/\s+/g, " ");
+    let company: { company_name: string; company_code: string; company_address: string; vat_code: string } | null = null;
+    if (isCo) {
+      const name = str("companyName").slice(0, 200);
+      const code = str("companyCode").replace(/\s/g, "");
+      const addr = str("companyAddress").slice(0, 300);
+      const vat = str("vatCode").replace(/\s/g, "").toUpperCase();
+      if (name.length < 2 || !/^(\d{7}|\d{9})$/.test(code) || !/\d/.test(addr) || addr.length < 5) return { ok: false, code: "validation" };
+      if (!noVat && !/^LT(\d{9}|\d{12})$/.test(vat)) return { ok: false, code: "validation" };
+      company = { company_name: name, company_code: code, company_address: addr, vat_code: noVat ? "Ne PVM mokėtojas" : vat };
+    }
     const plan = PRICES[f.plan.toLowerCase()];
     if (!plan) return { ok: false, code: "validation" };
     const files = data.getAll("files").filter((x): x is File => x instanceof File && x.size > 0);
@@ -69,6 +82,8 @@ export const submitOrder = createServerFn({ method: "POST" })
       order_number: orderNumber, plan_id: f.plan.toLowerCase(), plan_name: plan.name, price: plan.price,
       first_name: first, last_name: last, email: f.email, phone: normalizePhone(f.phone)!,
       comment: sanitize(f.komentaras) || null, file_paths: paths,
+      client_type: isCo ? "juridinis" : "fizinis",
+      ...(company ?? {}), contact_person: isCo ? sanitize(f.fullName) : null,
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
     return { ok: true, orderNumber };
