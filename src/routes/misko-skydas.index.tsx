@@ -15,15 +15,16 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const STATUSES = [
-  { id: "naujas", label: "Naujas", variant: "default" },
-  { id: "apmoketa", label: "Apmokėta", variant: "secondary" },
-  { id: "vykdoma", label: "Vykdoma", variant: "outline" },
-  { id: "atlikta", label: "Atlikta", variant: "secondary" },
-  { id: "atsaukta", label: "Atšaukta", variant: "destructive" },
+  { id: "Naujas", label: "Naujas", variant: "default" },
+  { id: "Apmokėta", label: "Apmokėta", variant: "secondary" },
+  { id: "Vykdoma", label: "Vykdoma", variant: "outline" },
+  { id: "Atlikta", label: "Atlikta", variant: "secondary" },
+  { id: "Atšaukta", label: "Atšaukta", variant: "destructive" },
 ] as const;
 const label = (s: string) => STATUSES.find((x) => x.id === s)?.label ?? s;
 const variant = (s: string) => STATUSES.find((x) => x.id === s)?.variant ?? "outline";
-const PAID = new Set(["apmoketa", "vykdoma", "atlikta"]);
+const isCo = (t: string) => t === "company" || t === "juridinis";
+const PAID = new Set(["Apmokėta", "Vykdoma", "Atlikta"]);
 
 export const Route = createFileRoute("/misko-skydas/")({
   ssr: false,
@@ -95,7 +96,7 @@ function Dashboard() {
     return (orders ?? []).filter((o) => {
       if (tab !== "visi" && o.status !== tab) return false;
       if (!s) return true;
-      return [o.order_number, `${o.first_name} ${o.last_name}`, o.company_name ?? "", o.email, o.phone]
+      return [o.order_number, o.full_name ?? "", o.company_name ?? "", o.email, o.phone]
         .some((v) => v.toLowerCase().includes(s));
     });
   }, [orders, q, tab]);
@@ -159,8 +160,8 @@ function Dashboard() {
                     {new Date(o.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius", dateStyle: "short", timeStyle: "short" })}
                   </TableCell>
                   <TableCell>
-                    <div className="font-medium">{o.client_type === "juridinis" ? o.company_name : `${o.first_name} ${o.last_name}`}</div>
-                    {o.client_type === "juridinis" && (
+                    <div className="font-medium">{isCo(o.client_type) ? o.company_name : o.full_name}</div>
+                    {isCo(o.client_type) && (
                       <div className="text-xs text-muted-foreground">
                         Kodas {o.company_code}{o.vat_code ? ` · PVM ${o.vat_code}` : " · ne PVM mokėtojas"}
                       </div>
@@ -180,7 +181,7 @@ function Dashboard() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={PAID.has(o.status) ? "secondary" : "outline"}>{PAID.has(o.status) ? "Apmokėta" : "Neapmokėta"}</Badge>
+                    <Badge variant={o.payment_status === "Apmokėta" || PAID.has(o.status) ? "secondary" : "outline"}>{o.payment_status}</Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

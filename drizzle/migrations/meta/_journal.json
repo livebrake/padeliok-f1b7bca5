@@ -29,6 +29,13 @@
       "when": 1791375993436,
       "tag": "0003_add_client_name_payment_status",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1791376781363,
+      "tag": "0004_align_orders_schema",
+      "breakpoints": true
     }
   ]
 }
