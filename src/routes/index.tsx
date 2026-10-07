@@ -163,8 +163,8 @@ function Index() {
 
 function Modal({ children, onClose }: { children: ReactNode; onClose: () => void }) {
   return (
-    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/50 p-4 md:items-center" onClick={onClose}>
-      <div className="relative w-full max-w-4xl rounded-lg bg-card shadow-2xl animate-in fade-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
+    <div className="fixed inset-0 z-50 flex items-start justify-center overflow-y-auto bg-foreground/50 p-4 md:py-10" onClick={onClose}>
+      <div className="relative my-auto w-full max-w-4xl rounded-lg bg-card shadow-2xl animate-in fade-in zoom-in-95" onClick={(e) => e.stopPropagation()}>
         <button onClick={onClose} aria-label="Uždaryti" className="absolute right-4 top-4 rounded p-1 text-muted-foreground hover:bg-muted"><X className="h-5 w-5" /></button>
         {children}
       </div>
@@ -193,8 +193,7 @@ const schema = z.object({
   fullName: z.string().trim()
     .min(1, "Prašome įvesti savo vardą ir pavardę.")
     .max(120)
-    .refine((v) => !/\d/.test(v), "Varde ir pavardėje negali būti skaitmenų.")
-    .refine((v) => v.trim().split(/\s+/).length >= 2, "Prašome įrašyti ir pavardę (mažiausiai du žodžius)."),
+    .refine((v) => !/\d/.test(v), "Varde ir pavardėje negali būti skaitmenų."),
   email: z.string().trim()
     .min(1, "Prašome įvesti el. pašto adresą.")
     .email("Trūksta „@“ arba domeno pabaigos (pvz., vardas@pastas.lt).")
@@ -270,6 +269,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     const r = schema.safeParse(Object.fromEntries(fd));
     const errs: Record<string, string> = {};
     if (!r.success) r.error.issues.forEach((i) => { const k = String(i.path[0]); if (!errs[k]) errs[k] = i.message; });
+    const fn = String(fd.get("fullName") ?? "").trim();
+    if (!isCo && !errs["fullName"] && fn.split(/\s+/).length < 2) errs["fullName"] = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";
     if (isCo) {
       const cs = noVat ? companySchema.omit({ vatCode: true }) : companySchema;
       const cr = cs.safeParse(Object.fromEntries(fd));
