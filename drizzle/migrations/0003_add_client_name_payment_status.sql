@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS client_name text, ADD COLUMN IF NOT EXISTS payment_status text NOT NULL DEFAULT 'Laukia apmokėjimo';
+UPDATE public.orders SET client_name = COALESCE(company_name, trim(first_name || ' ' || last_name)) WHERE client_name IS NULL;
