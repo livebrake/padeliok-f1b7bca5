@@ -172,10 +172,54 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
   );
 }
 
+// Normalizuoja lietuvišką numerį į +3706XXXXXXX; grąžina null, jei negaliojantis.
+export function normalizePhone(raw: string): string | null {
+  const v = raw.trim();
+  if (/[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]/.test(v)) return null;
+  if (v.includes("8")) {
+    const digits = v.replace(/\D/g, "");
+    if (digits.startsWith("8")) return null; // senasis „8“ prefiksas nebenaudojamas
+  }
+  const digits = v.replace(/\D/g, "");
+  let national: string;
+  if (digits.startsWith("370")) national = digits.slice(3);
+  else if (digits.startsWith("0")) national = digits.slice(1);
+  else national = digits;
+  if (!/^6\d{7}$/.test(national)) return null;
+  return `+370${national}`;
+}
+
 const schema = z.object({
-  fullName: z.string().trim().min(1, "Prašome įvesti savo vardą ir pavardę.").max(120),
-  email: z.string().trim().min(1, "Prašome įvesti el. pašto adresą.").email("Įveskite galiojantį el. pašto adresą (pvz., vardas@pavyzdys.lt).").max(255),
-  phone: z.string().trim().min(1, "Prašome įvesti telefono numerį.").regex(/^\+?[0-9\s()-]{8,20}$/, "Įveskite teisingą telefono numerį (pvz., +37060000000)."),
+  fullName: z.string().trim()
+    .min(1, "Prašome įvesti savo vardą ir pavardę.")
+    .max(120)
+    .refine((v) => !/\d/.test(v), "Varde ir pavardėje negali būti skaitmenų.")
+    .refine((v) => v.trim().split(/\s+/).length >= 2, "Prašome įrašyti ir pavardę (mažiausiai du žodžius)."),
+  email: z.string().trim()
+    .min(1, "Prašome įvesti el. pašto adresą.")
+    .email("Trūksta „@“ arba domeno pabaigos (pvz., vardas@pastas.lt).")
+    .max(255),
+  phone: z.string().trim()
+    .min(1, "Prašome įvesti telefono numerį.")
+    .superRefine((v, ctx) => {
+      if (/[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]/.test(v)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Telefono numeryje gali būti tik skaitmenys, tarpai ir „+“ pradžioje." });
+        return;
+      }
+      const digits = v.replace(/\D/g, "");
+      if (digits.startsWith("8")) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Prefiksas „8“ nebenaudojamas – pradėkite nuo 0 arba +370 (pvz., 0 600 00000)." });
+        return;
+      }
+      const national = digits.startsWith("370") ? digits.slice(3) : digits.startsWith("0") ? digits.slice(1) : digits;
+      if (national.length < 8) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Trūksta skaitmenų – lietuviškas numeris turi 8 skaitmenis po kodo (pvz., +370 600 00000)." });
+        return;
+      }
+      if (!/^6\d{7}$/.test(national)) {
+        ctx.addIssue({ code: z.ZodIssueCode.custom, message: "Įveskite teisingą telefono numerį (pvz., +370 600 00000 arba 0 600 00000)." });
+      }
+    }),
   komentaras: z.string().max(1000).optional(),
 });
 const MAX_FILE = 20 * 1024 * 1024;
