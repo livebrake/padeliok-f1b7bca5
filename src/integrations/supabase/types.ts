@@ -27,6 +27,7 @@ export type Database = {
           email: string
           file_paths: string[]
           first_name: string
+          full_name: string | null
           id: string
           last_name: string
           order_number: string
@@ -49,13 +50,14 @@ export type Database = {
           created_at?: string
           email: string
           file_paths?: string[]
-          first_name: string
+          first_name?: string
+          full_name?: string | null
           id?: string
-          last_name: string
+          last_name?: string
           order_number: string
           payment_status?: string
           phone: string
-          plan_id: string
+          plan_id?: string
           plan_name: string
           price: number
           status?: string
@@ -73,6 +75,7 @@ export type Database = {
           email?: string
           file_paths?: string[]
           first_name?: string
+          full_name?: string | null
           id?: string
           last_name?: string
           order_number?: string
@@ -116,6 +119,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      next_order_number: { Args: never; Returns: string }
     }
     Enums: {
       app_role: "admin" | "user"

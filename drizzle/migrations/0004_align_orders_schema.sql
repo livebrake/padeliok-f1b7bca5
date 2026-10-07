@@ -1,0 +1,14 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS full_name text;
+ALTER TABLE public.orders ALTER COLUMN first_name SET DEFAULT '';
+ALTER TABLE public.orders ALTER COLUMN last_name SET DEFAULT '';
+ALTER TABLE public.orders ALTER COLUMN plan_id SET DEFAULT '';
+ALTER TABLE public.orders ALTER COLUMN status SET DEFAULT 'Naujas';
+ALTER TABLE public.orders ALTER COLUMN client_type SET DEFAULT 'private';
+UPDATE public.orders SET full_name = trim(first_name || ' ' || last_name) WHERE full_name IS NULL;
+UPDATE public.orders SET client_type = CASE WHEN client_type = 'juridinis' THEN 'company' WHEN client_type = 'fizinis' THEN 'private' ELSE client_type END WHERE client_type IN ('juridinis','fizinis');
+UPDATE public.orders SET status = CASE status WHEN 'naujas' THEN 'Naujas' WHEN 'apmoketa' THEN 'Apmokėta' WHEN 'vykdoma' THEN 'Vykdoma' WHEN 'atlikta' THEN 'Atlikta' WHEN 'atsaukta' THEN 'Atšaukta' ELSE status END WHERE status IN ('naujas','apmoketa','vykdoma','atlikta','atsaukta');
+CREATE SEQUENCE IF NOT EXISTS public.order_number_seq START 1001;
+CREATE OR REPLACE FUNCTION public.next_order_number() RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$ SELECT 'PADEL-' || nextval('public.order_number_seq')::text $$;
+REVOKE ALL ON FUNCTION public.next_order_number() FROM PUBLIC, anon, authenticated;
+GRANT EXECUTE ON FUNCTION public.next_order_number() TO service_role;
+GRANT USAGE ON SEQUENCE public.order_number_seq TO service_role;
