@@ -63,12 +63,9 @@ export const submitOrder = createServerFn({ method: "POST" })
     if (!files.length || files.length > 20 || files.some((x) => x.size > MAX_FILE || !EXT.test(x.name)))
       return { ok: false, code: "validation" };
 
-    const name = sanitize(f.fullName).split(/\s+/);
-    const first = name.shift() ?? "";
-    const last = name.join(" ");
-
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const orderNumber = `PAD-${Date.now().toString().slice(-6)}${Math.floor(Math.random() * 90 + 10)}`;
+    const { data: seq } = await supabaseAdmin.rpc("next_order_number");
+    const orderNumber = seq ?? `PADEL-${Date.now().toString().slice(-6)}`;
     const paths: string[] = [];
     for (const file of files) {
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
@@ -79,15 +76,24 @@ export const submitOrder = createServerFn({ method: "POST" })
       if (error) { console.error("storage upload failed", error); return { ok: false, code: "storage" }; }
       paths.push(path);
     }
+    const fullName = sanitize(f.fullName);
     const { error } = await supabaseAdmin.from("orders").insert({
-      order_number: orderNumber, plan_id: f.plan.toLowerCase(), plan_name: plan.name, price: plan.price,
-      first_name: first, last_name: last, email: f.email, phone: normalizePhone(f.phone)!,
-      comment: sanitize(f.komentaras) || null, file_paths: paths,
-      client_type: isCo ? "juridinis" : "fizinis",
-      ...(company ?? {}), contact_person: isCo ? sanitize(f.fullName) : null,
-      client_name: company?.company_name ?? sanitize(f.fullName),
-      status: "naujas", payment_status: "Laukia apmokėjimo",
-      created_at: new Date().toISOString(),
+      order_number: orderNumber,
+      full_name: fullName,
+      email: f.email,
+      phone: normalizePhone(f.phone)!,
+      plan_name: plan.name,
+      price: plan.price,
+      status: "Naujas",
+      payment_status: "Laukia apmokėjimo",
+      client_type: isCo ? "company" : "private",
+      company_name: company?.company_name ?? null,
+      company_code: company?.company_code ?? null,
+      company_address: company?.company_address ?? null,
+      vat_code: company?.vat_code ?? null,
+      contact_person: isCo ? fullName : null,
+      comment: sanitize(f.komentaras) || null,
+      file_paths: paths,
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
     return { ok: true, orderNumber };
