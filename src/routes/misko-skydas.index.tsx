@@ -2,7 +2,7 @@ import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
-import { ChevronDown, FileText, LogOut, Search } from "lucide-react";
+import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -25,6 +25,30 @@ const label = (s: string) => STATUSES.find((x) => x.id === s)?.label ?? s;
 const variant = (s: string) => STATUSES.find((x) => x.id === s)?.variant ?? "outline";
 const isCo = (t: string) => t === "company" || t === "juridinis";
 const PAID = new Set(["Apmokėta", "Vykdoma", "Atlikta"]);
+
+type SortKey = "created_at" | "full_name" | "phone" | "plan_name";
+type SortDir = "asc" | "desc";
+type Preset = "viskas" | "savaitė" | "mėnuo" | "metai" | "data" | "intervalas";
+
+const PRESETS: { id: Preset; label: string }[] = [
+  { id: "viskas", label: "Visas laikas" },
+  { id: "savaitė", label: "Ši savaitė" },
+  { id: "mėnuo", label: "Šis mėnuo" },
+  { id: "metai", label: "Šie metai" },
+  { id: "data", label: "Konkreti data" },
+  { id: "intervalas", label: "Intervalas" },
+];
+
+function startOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(0, 0, 0, 0);
+  return x;
+}
+function endOfDay(d: Date) {
+  const x = new Date(d);
+  x.setHours(23, 59, 59, 999);
+  return x;
+}
 
 export const Route = createFileRoute("/misko-skydas/")({
   ssr: false,
@@ -53,6 +77,12 @@ function Dashboard() {
   const navigate = useNavigate();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("visi");
+  const [preset, setPreset] = useState<Preset>("viskas");
+  const [singleDate, setSingleDate] = useState("");
+  const [dateFrom, setDateFrom] = useState("");
+  const [dateTo, setDateTo] = useState("");
+  const [sortKey, setSortKey] = useState<SortKey>("created_at");
+  const [sortDir, setSortDir] = useState<SortDir>("desc");
 
   const { data: orders, isLoading, error } = useQuery({
     queryKey: ["admin-orders"],
@@ -91,15 +121,106 @@ function Dashboard() {
     navigate({ to: "/", replace: true });
   }
 
+  function toggleSort(key: SortKey) {
+    if (sortKey === key) {
+      setSortDir((d) => (d === "asc" ? "desc" : "asc"));
+    } else {
+      setSortKey(key);
+      setSortDir(key === "created_at" ? "desc" : "asc");
+    }
+  }
+
+  function resetFilters() {
+    setQ("");
+    setTab("visi");
+    setPreset("viskas");
+    setSingleDate("");
+    setDateFrom("");
+    setDateTo("");
+    setSortKey("created_at");
+    setSortDir("desc");
+  }
+
+  const dateRange = useMemo((): [Date | null, Date | null] => {
+    const now = new Date();
+    switch (preset) {
+      case "savaitė": {
+        const d = startOfDay(now);
+        d.setDate(d.getDate() - ((d.getDay() + 6) % 7)); // pirmadienis
+        return [d, endOfDay(now)];
+      }
+      case "mėnuo":
+        return [new Date(now.getFullYear(), now.getMonth(), 1), endOfDay(now)];
+      case "metai":
+        return [new Date(now.getFullYear(), 0, 1), endOfDay(now)];
+      case "data": {
+        if (!singleDate) return [null, null];
+        const d = new Date(`${singleDate}T00:00:00`);
+        return [startOfDay(d), endOfDay(d)];
+      }
+      case "intervalas": {
+        const from = dateFrom ? startOfDay(new Date(`${dateFrom}T00:00:00`)) : null;
+        const to = dateTo ? endOfDay(new Date(`${dateTo}T00:00:00`)) : null;
+        return [from, to];
+      }
+      default:
+        return [null, null];
+    }
+  }, [preset, singleDate, dateFrom, dateTo]);
+
   const filtered = useMemo(() => {
     const s = q.trim().toLowerCase();
-    return (orders ?? []).filter((o) => {
+    const [from, to] = dateRange;
+    const list = (orders ?? []).filter((o) => {
       if (tab !== "visi" && o.status !== tab) return false;
+      if (from || to) {
+        const t = new Date(o.created_at).getTime();
+        if (from && t < from.getTime()) return false;
+        if (to && t > to.getTime()) return false;
+      }
       if (!s) return true;
       return [o.order_number, o.full_name ?? "", o.company_name ?? "", o.email, o.phone]
         .some((v) => v.toLowerCase().includes(s));
     });
-  }, [orders, q, tab]);
+    const dir = sortDir === "asc" ? 1 : -1;
+    return [...list].sort((a, b) => {
+      if (sortKey === "created_at") {
+        return (new Date(a.created_at).getTime() - new Date(b.created_at).getTime()) * dir;
+      }
+      const av = (sortKey === "full_name"
+        ? (isCo(a.client_type) ? a.company_name : a.full_name) ?? ""
+        : a[sortKey] ?? ""
+      ).toLowerCase();
+      const bv = (sortKey === "full_name"
+        ? (isCo(b.client_type) ? b.company_name : b.full_name) ?? ""
+        : b[sortKey] ?? ""
+      ).toLowerCase();
+      return av.localeCompare(bv, "lt") * dir;
+    });
+  }, [orders, q, tab, dateRange, sortKey, sortDir]);
+
+  const hasActiveFilters =
+    q.trim() !== "" || tab !== "visi" || preset !== "viskas" || sortKey !== "created_at" || sortDir !== "desc";
+
+  function SortableHead({ id, children }: { id: SortKey; children: React.ReactNode }) {
+    const active = sortKey === id;
+    return (
+      <TableHead>
+        <button
+          type="button"
+          onClick={() => toggleSort(id)}
+          className="inline-flex items-center gap-1 font-medium hover:text-foreground"
+        >
+          {children}
+          {active ? (
+            sortDir === "asc" ? <ArrowUp className="h-3 w-3" /> : <ArrowDown className="h-3 w-3" />
+          ) : (
+            <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
+          )}
+        </button>
+      </TableHead>
+    );
+  }
 
   return (
     <main className="min-h-screen bg-muted/30">
@@ -126,16 +247,50 @@ function Dashboard() {
           </div>
         </div>
 
+        <div className="flex flex-wrap items-center gap-2 rounded-xl border bg-card p-3">
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button variant="outline" size="sm">
+                {PRESETS.find((p) => p.id === preset)?.label}
+                <ChevronDown className="ml-1 h-3 w-3" />
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="start">
+              {PRESETS.map((p) => (
+                <DropdownMenuItem key={p.id} onClick={() => setPreset(p.id)}>{p.label}</DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
+
+          {preset === "data" && (
+            <Input type="date" className="w-auto" value={singleDate} onChange={(e) => setSingleDate(e.target.value)} />
+          )}
+          {preset === "intervalas" && (
+            <>
+              <Input type="date" className="w-auto" value={dateFrom} onChange={(e) => setDateFrom(e.target.value)} aria-label="Nuo" />
+              <span className="text-sm text-muted-foreground">–</span>
+              <Input type="date" className="w-auto" value={dateTo} onChange={(e) => setDateTo(e.target.value)} aria-label="Iki" />
+            </>
+          )}
+
+          <Badge variant="secondary" className="ml-auto">Rasta užsakymų: {filtered.length}</Badge>
+          {hasActiveFilters && (
+            <Button variant="ghost" size="sm" onClick={resetFilters}>
+              <FilterX className="mr-1 h-4 w-4" />Valyti filtrus
+            </Button>
+          )}
+        </div>
+
         <div className="rounded-xl border bg-card">
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Nr.</TableHead>
-                <TableHead>Data</TableHead>
-                <TableHead>Klientas</TableHead>
+                <SortableHead id="created_at">Data</SortableHead>
+                <SortableHead id="full_name">Klientas</SortableHead>
                 <TableHead>El. paštas</TableHead>
-                <TableHead>Telefonas</TableHead>
-                <TableHead>Planas</TableHead>
+                <SortableHead id="phone">Telefonas</SortableHead>
+                <SortableHead id="plan_name">Planas</SortableHead>
                 <TableHead>Failai</TableHead>
                 <TableHead>Apmokėjimas</TableHead>
                 <TableHead>Būsena</TableHead>
