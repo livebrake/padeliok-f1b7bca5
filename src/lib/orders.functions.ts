@@ -85,6 +85,9 @@ export const submitOrder = createServerFn({ method: "POST" })
       comment: sanitize(f.komentaras) || null, file_paths: paths,
       client_type: isCo ? "juridinis" : "fizinis",
       ...(company ?? {}), contact_person: isCo ? sanitize(f.fullName) : null,
+      client_name: company?.company_name ?? sanitize(f.fullName),
+      status: "naujas", payment_status: "Laukia apmokėjimo",
+      created_at: new Date().toISOString(),
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
     return { ok: true, orderNumber };
