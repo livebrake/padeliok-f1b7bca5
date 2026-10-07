@@ -1,0 +1,1 @@
+CREATE OR REPLACE FUNCTION public.next_order_number() RETURNS text LANGUAGE sql SECURITY DEFINER SET search_path = public AS $$ SELECT 'PAD-' || nextval('public.order_number_seq')::text $$;
