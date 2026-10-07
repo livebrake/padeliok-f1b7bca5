@@ -280,7 +280,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     const value = e.target.value;
     if (!value.trim()) return; // tuščio lauko netikriname išlipus – klaida pasirodys siunčiant
     const r = schema.shape[name].safeParse(value);
-    if (!r.success) setErrors((p) => ({ ...p, [name]: r.error.issues[0].message }));
+    if (!r.success) setErrors((p) => ({ ...p, [name]: r.error.issues[0]?.message ?? "Neteisinga reikšmė." }));
   };
   const inputCls = (name: string) =>
     `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
