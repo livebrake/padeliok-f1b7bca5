@@ -18,7 +18,7 @@ const normalizePhone = (raw: string): string | null => {
 
 const fields = z.object({
   plan: z.string().max(50),
-  fullName: z.string().trim().min(1).max(120).refine((v) => !/\d/.test(v) && v.split(/\s+/).length >= 2),
+  fullName: z.string().trim().min(1).max(120).refine((v) => !/\d/.test(v)),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().min(1).max(30).refine((v) => normalizePhone(v) !== null),
   komentaras: z.string().max(1000).optional().default(""),
@@ -44,6 +44,7 @@ export const submitOrder = createServerFn({ method: "POST" })
     if (!parsed.success) return { ok: false, code: "validation" };
     const f = parsed.data;
     const isCo = data.get("clientType") === "juridinis";
+    if (!isCo && f.fullName.split(/\s+/).length < 2) return { ok: false, code: "validation" };
     const noVat = data.get("noVat") === "1";
     const str = (k: string) => sanitize(String(data.get(k) ?? "")).replace(/\s+/g, " ");
     let company: { company_name: string; company_code: string; company_address: string; vat_code: string } | null = null;
