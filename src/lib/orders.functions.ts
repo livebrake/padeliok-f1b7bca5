@@ -65,7 +65,7 @@ export const submitOrder = createServerFn({ method: "POST" })
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: seq } = await supabaseAdmin.rpc("next_order_number");
-    const orderNumber = seq ?? `PADEL-${Date.now().toString().slice(-6)}`;
+    const orderNumber = seq ?? `PAD-${Date.now().toString().slice(-6)}`;
     const paths: string[] = [];
     for (const file of files) {
       const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);

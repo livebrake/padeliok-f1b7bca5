@@ -36,6 +36,13 @@
       "when": 1791376781363,
       "tag": "0004_align_orders_schema",
       "breakpoints": true
+    },
+    {
+      "idx": 5,
+      "version": "7",
+      "when": 1791377334373,
+      "tag": "0005_order_number_prefix_pad",
+      "breakpoints": true
     }
   ]
 }
