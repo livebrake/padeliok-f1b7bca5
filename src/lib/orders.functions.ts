@@ -53,7 +53,7 @@ export const submitOrder = createServerFn({ method: "POST" })
       const code = str("companyCode").replace(/\s/g, "");
       const addr = str("companyAddress").slice(0, 300);
       const vat = str("vatCode").replace(/\s/g, "").toUpperCase();
-      if (name.length < 2 || !/^(\d{7}|\d{9})$/.test(code) || !/\d/.test(addr) || addr.length < 5) return { ok: false, code: "validation" };
+      if (name.length < 2 || !/^\d{9}$/.test(code) || !/\d/.test(addr) || addr.length < 5) return { ok: false, code: "validation" };
       if (!noVat && !/^LT(\d{9}|\d{12})$/.test(vat)) return { ok: false, code: "validation" };
       company = { company_name: name, company_code: code, company_address: addr, vat_code: noVat ? "Ne PVM mokėtojas" : vat };
     }
