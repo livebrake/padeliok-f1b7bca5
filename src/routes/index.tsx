@@ -249,6 +249,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
   const [paying, setPaying] = useState(false);
+  const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
+  const [noVat, setNoVat] = useState(false);
+  const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];
   const total = all.reduce((s, f) => s + f.size, 0);
 
