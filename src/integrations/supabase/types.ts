@@ -16,7 +16,12 @@ export type Database = {
     Tables: {
       orders: {
         Row: {
+          client_type: string
           comment: string | null
+          company_address: string | null
+          company_code: string | null
+          company_name: string | null
+          contact_person: string | null
           created_at: string
           email: string
           file_paths: string[]
@@ -29,9 +34,15 @@ export type Database = {
           plan_name: string
           price: number
           status: string
+          vat_code: string | null
         }
         Insert: {
+          client_type?: string
           comment?: string | null
+          company_address?: string | null
+          company_code?: string | null
+          company_name?: string | null
+          contact_person?: string | null
           created_at?: string
           email: string
           file_paths?: string[]
@@ -44,9 +55,15 @@ export type Database = {
           plan_name: string
           price: number
           status?: string
+          vat_code?: string | null
         }
         Update: {
+          client_type?: string
           comment?: string | null
+          company_address?: string | null
+          company_code?: string | null
+          company_name?: string | null
+          contact_person?: string | null
           created_at?: string
           email?: string
           file_paths?: string[]
@@ -59,6 +76,7 @@ export type Database = {
           plan_name?: string
           price?: number
           status?: string
+          vat_code?: string | null
         }
         Relationships: []
       }

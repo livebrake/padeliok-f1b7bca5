@@ -8,6 +8,13 @@
       "when": 1790948764361,
       "tag": "0000_create_orders",
       "breakpoints": true
+    },
+    {
+      "idx": 1,
+      "version": "7",
+      "when": 1791361016479,
+      "tag": "0001_add_company_fields",
+      "breakpoints": true
     }
   ]
 }
