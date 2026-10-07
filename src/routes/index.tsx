@@ -270,12 +270,19 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     const r = schema.safeParse(Object.fromEntries(fd));
     const errs: Record<string, string> = {};
     if (!r.success) r.error.issues.forEach((i) => { const k = String(i.path[0]); if (!errs[k]) errs[k] = i.message; });
+    if (isCo) {
+      const cs = noVat ? companySchema.omit({ vatCode: true }) : companySchema;
+      const cr = cs.safeParse(Object.fromEntries(fd));
+      if (!cr.success) cr.error.issues.forEach((i) => { const k = String(i.path[0]); if (!errs[k]) errs[k] = i.message; });
+    }
     const fe = fileError(all);
     if (fe) errs["files"] = fe;
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setPaying(true);
     fd.set("plan", plan.id);
+    fd.set("clientType", clientType);
+    fd.set("noVat", noVat ? "1" : "0");
     fd.set("phone", normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""));
     all.forEach((f) => fd.append("files", f));
     try {
@@ -291,15 +298,16 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   };
 
   const clear = (name: string) => errors[name] && setErrors((p) => { const n = { ...p }; delete n[name]; return n; });
-  const blur = (name: "fullName" | "email" | "phone") => (e: React.FocusEvent<HTMLInputElement>) => {
+  const blur = (name: "fullName" | "email" | "phone" | CompanyKey) => (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
     if (!value.trim()) return; // tuščio lauko netikriname išlipus – klaida pasirodys siunčiant
-    const r = schema.shape[name].safeParse(value);
+    const s = name in schema.shape ? schema.shape[name as "fullName"] : companySchema.shape[name as CompanyKey];
+    const r = s.safeParse(value);
     if (!r.success) setErrors((p) => ({ ...p, [name]: r.error.issues[0]?.message ?? "Neteisinga reikšmė." }));
   };
   const inputCls = (name: string) =>
     `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
-  const field = (name: "fullName" | "email" | "phone", label: string, type = "text", placeholder = "", hint = "") => (
+  const field = (name: "fullName" | "email" | "phone" | CompanyKey, label: string, type = "text", placeholder = "", hint = "") => (
     <label className="block text-sm">
       <span className="font-medium">{label}</span>
       <input name={name} type={type} maxLength={255} placeholder={placeholder} aria-invalid={!!errors[name]} onChange={() => clear(name)} onBlur={blur(name)} className={inputCls(name)} />
@@ -308,6 +316,10 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         : hint && <span className="mt-1 block text-xs text-muted-foreground">{hint}</span>}
     </label>
   );
+  const switchType = (t: "fizinis" | "juridinis") => {
+    setClientType(t);
+    setErrors((p) => { const n = { ...p }; ["companyName", "companyCode", "companyAddress", "vatCode"].forEach((k) => delete n[k]); return n; });
+  };
 
   return (
     <form onSubmit={submit} noValidate className="grid md:grid-cols-[1fr_300px]">
@@ -320,9 +332,33 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               className={`rounded-full border px-3 py-1 text-xs font-medium ${p.id === plan.id ? "border-primary bg-primary text-primary-foreground" : "border-border hover:bg-muted"}`}>{p.name}</button>
           ))}
         </div>
+        <div role="radiogroup" aria-label="Užsakovo tipas" className="inline-flex rounded-lg border border-border bg-muted p-1 text-sm">
+          {([["fizinis", "Fizinis asmuo"], ["juridinis", "Juridinis asmuo (įmonė)"]] as const).map(([v, l]) => (
+            <button key={v} type="button" role="radio" aria-checked={clientType === v} onClick={() => switchType(v)}
+              className={`rounded-md px-4 py-1.5 font-medium transition-colors ${clientType === v ? "bg-background text-foreground shadow-sm" : "text-muted-foreground hover:text-foreground"}`}>{l}</button>
+          ))}
+        </div>
+        {isCo && (
+          <div className="grid gap-4 rounded-lg border border-border p-4 sm:grid-cols-2">
+            <div className="sm:col-span-2">{field("companyName", "Įmonės pavadinimas", "text", "UAB „Statybų grupė“", "Su teisine forma: UAB, MB, AB, VšĮ ir kt.")}</div>
+            {field("companyCode", "Įmonės kodas", "text", "123456789", "9 skaitmenys")}
+            <div className="block text-sm">
+              {noVat
+                ? <><span className="font-medium">PVM mokėtojo kodas</span><div className="mt-1 rounded-md border border-dashed border-input px-3 py-2 text-muted-foreground">Ne PVM mokėtojas</div></>
+                : field("vatCode", "PVM mokėtojo kodas", "text", "LT123456789", "Pvz.: LT123456789")}
+              <label className="mt-2 flex items-center gap-2 text-xs">
+                <input type="checkbox" checked={noVat} onChange={(e) => { setNoVat(e.target.checked); clear("vatCode"); }} className="h-4 w-4 accent-primary" />
+                Įmonė nėra PVM mokėtoja
+              </label>
+            </div>
+            <div className="sm:col-span-2">{field("companyAddress", "Registracijos (buveinės) adresas", "text", "Gedimino pr. 1, Vilnius", "Gatvė, namo nr., miestas")}</div>
+          </div>
+        )}
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">{field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis", "Įveskite vardą ir pavardę")}</div>
-          {field("email", "El. pašto adresas", "email", "vardas@pastas.lt")}
+          <div className="sm:col-span-2">{isCo
+            ? field("fullName", "Kontaktinis asmuo (vardas ir pavardė)", "text", "Jonas Jonaitis", "Su kuo derinsime užsakymą")
+            : field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis", "Įveskite vardą ir pavardę")}</div>
+          {field("email", isCo ? "El. paštas (sąskaitoms ir ryšiui)" : "El. pašto adresas", "email", "vardas@pastas.lt")}
           {field("phone", "Telefono numeris", "tel", "+370 600 00000", "Pvz.: +370 600 00000 arba 0 600 00000")}
         </div>
         <label className="block text-sm">
