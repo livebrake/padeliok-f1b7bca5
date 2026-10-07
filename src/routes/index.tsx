@@ -1,4 +1,4 @@
-import { createFileRoute } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, type ReactNode } from "react";
 import { z } from "zod";
 import {
@@ -131,8 +131,8 @@ function Index() {
             <p className="flex items-center gap-2 text-sm text-muted-foreground"><Phone className="h-4 w-4" /> +370 600 00000</p>
           </div>
           <div className="flex flex-col gap-2 text-sm">
-            <button onClick={() => setDoc("sutartis")} className="text-left hover:text-primary">Paslaugų teikimo sutartis</button>
-            <button onClick={() => setDoc("privatumas")} className="text-left hover:text-primary">Privatumo taisyklės</button>
+            <Link to="/paslaugu-teikimo-sutartis" className="text-left hover:text-primary">Paslaugų teikimo sutartis</Link>
+            <Link to="/privatumo-taisykles" className="text-left hover:text-primary">Privatumo taisyklės</Link>
           </div>
         </div>
         <p className="mt-10 text-xs text-muted-foreground">© {new Date().getFullYear()} padeliOK.lt</p>

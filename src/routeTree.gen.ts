@@ -10,12 +10,24 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as PaslauguTeikimoSutartisRouteImport } from './routes/paslaugu-teikimo-sutartis'
+import { Route as PrivatumoTaisyklesRouteImport } from './routes/privatumo-taisykles'
 import { Route as MiskoSkydasIndexRouteImport } from './routes/misko-skydas.index'
 import { Route as MiskoSkydasJungtisRouteImport } from './routes/misko-skydas.jungtis'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PaslauguTeikimoSutartisRoute = PaslauguTeikimoSutartisRouteImport.update({
+  id: '/paslaugu-teikimo-sutartis',
+  path: '/paslaugu-teikimo-sutartis',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const PrivatumoTaisyklesRoute = PrivatumoTaisyklesRouteImport.update({
+  id: '/privatumo-taisykles',
+  path: '/privatumo-taisykles',
   getParentRoute: () => rootRouteImport,
 } as any)
 const MiskoSkydasIndexRoute = MiskoSkydasIndexRouteImport.update({
@@ -31,30 +43,54 @@ const MiskoSkydasJungtisRoute = MiskoSkydasJungtisRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
+  '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
+  '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
   '/misko-skydas': typeof MiskoSkydasIndexRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
+  '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths: '/' | '/misko-skydas/jungtis' | '/misko-skydas/'
+  fullPaths:
+    | '/'
+    | '/paslaugu-teikimo-sutartis'
+    | '/privatumo-taisykles'
+    | '/misko-skydas/jungtis'
+    | '/misko-skydas/'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/misko-skydas/jungtis' | '/misko-skydas'
-  id: '__root__' | '/' | '/misko-skydas/jungtis' | '/misko-skydas/'
+  to:
+    | '/'
+    | '/paslaugu-teikimo-sutartis'
+    | '/privatumo-taisykles'
+    | '/misko-skydas/jungtis'
+    | '/misko-skydas'
+  id:
+    | '__root__'
+    | '/'
+    | '/paslaugu-teikimo-sutartis'
+    | '/privatumo-taisykles'
+    | '/misko-skydas/jungtis'
+    | '/misko-skydas/'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  PaslauguTeikimoSutartisRoute: typeof PaslauguTeikimoSutartisRoute
+  PrivatumoTaisyklesRoute: typeof PrivatumoTaisyklesRoute
   MiskoSkydasJungtisRoute: typeof MiskoSkydasJungtisRoute
   MiskoSkydasIndexRoute: typeof MiskoSkydasIndexRoute
 }
@@ -66,6 +102,20 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/paslaugu-teikimo-sutartis': {
+      id: '/paslaugu-teikimo-sutartis'
+      path: '/paslaugu-teikimo-sutartis'
+      fullPath: '/paslaugu-teikimo-sutartis'
+      preLoaderRoute: typeof PaslauguTeikimoSutartisRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/privatumo-taisykles': {
+      id: '/privatumo-taisykles'
+      path: '/privatumo-taisykles'
+      fullPath: '/privatumo-taisykles'
+      preLoaderRoute: typeof PrivatumoTaisyklesRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/misko-skydas/': {
@@ -87,6 +137,8 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  PaslauguTeikimoSutartisRoute: PaslauguTeikimoSutartisRoute,
+  PrivatumoTaisyklesRoute: PrivatumoTaisyklesRoute,
   MiskoSkydasJungtisRoute: MiskoSkydasJungtisRoute,
   MiskoSkydasIndexRoute: MiskoSkydasIndexRoute,
 }
