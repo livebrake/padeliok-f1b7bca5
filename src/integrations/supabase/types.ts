@@ -16,6 +16,7 @@ export type Database = {
     Tables: {
       orders: {
         Row: {
+          client_name: string | null
           client_type: string
           comment: string | null
           company_address: string | null
@@ -29,6 +30,7 @@ export type Database = {
           id: string
           last_name: string
           order_number: string
+          payment_status: string
           phone: string
           plan_id: string
           plan_name: string
@@ -37,6 +39,7 @@ export type Database = {
           vat_code: string | null
         }
         Insert: {
+          client_name?: string | null
           client_type?: string
           comment?: string | null
           company_address?: string | null
@@ -50,6 +53,7 @@ export type Database = {
           id?: string
           last_name: string
           order_number: string
+          payment_status?: string
           phone: string
           plan_id: string
           plan_name: string
@@ -58,6 +62,7 @@ export type Database = {
           vat_code?: string | null
         }
         Update: {
+          client_name?: string | null
           client_type?: string
           comment?: string | null
           company_address?: string | null
@@ -71,6 +76,7 @@ export type Database = {
           id?: string
           last_name?: string
           order_number?: string
+          payment_status?: string
           phone?: string
           plan_id?: string
           plan_name?: string
