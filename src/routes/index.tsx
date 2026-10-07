@@ -819,7 +819,7 @@ function Success({ onClose, orderId }: { onClose: () => void; orderId: string })
       <h2 className="mt-5 text-2xl font-bold md:text-3xl">Užsakymas gautas!</h2>
       <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
         Jūsų užsakymo ID: <span className="font-mono font-medium text-foreground">#{orderId}</span>. Architektas jau
-        pradeda nagrinėti sklypo dokumentus. Atsakymą gaunate nurodytu el. paštu.
+        pradeda nagrinėti sklypo dokumentus. Atsakymą gausite nurodytu el.paštu.
       </p>
       <Btn className="mt-8" onClick={onClose}>
         Grįžti į pradžią
