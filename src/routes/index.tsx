@@ -222,6 +222,18 @@ const schema = z.object({
     }),
   komentaras: z.string().max(1000).optional(),
 });
+const companySchema = z.object({
+  companyName: z.string().trim().min(1, "Prašome įvesti įmonės pavadinimą.").max(200)
+    .refine((v) => v.length >= 2, "Įmonės pavadinimas per trumpas."),
+  companyCode: z.string().trim().min(1, "Prašome įvesti įmonės kodą.")
+    .refine((v) => /^\d+$/.test(v.replace(/\s/g, "")), "Įmonės kode gali būti tik skaitmenys.")
+    .refine((v) => /^(\d{7}|\d{9})$/.test(v.replace(/\s/g, "")), "Įmonės kodą turi sudaryti 9 skaitmenys (senesnių įmonių – 7)."),
+  companyAddress: z.string().trim().min(1, "Prašome įvesti registracijos adresą.").max(300)
+    .refine((v) => /\d/.test(v) && /[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]{2,}/.test(v), "Nurodykite gatvę, namo numerį ir miestą (pvz., Gedimino pr. 1, Vilnius)."),
+  vatCode: z.string().trim().min(1, "Įveskite PVM kodą arba pažymėkite „Ne PVM mokėtojas“.")
+    .refine((v) => /^LT(\d{9}|\d{12})$/i.test(v.replace(/\s/g, "")), "PVM kodas turi prasidėti „LT“ ir turėti 9 arba 12 skaitmenų (pvz., LT123456789)."),
+});
+type CompanyKey = keyof typeof companySchema.shape;
 const MAX_FILE = 20 * 1024 * 1024;
 const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
