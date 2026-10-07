@@ -76,7 +76,10 @@ function Dashboard() {
 
   async function openFile(path: string) {
     const { data, error } = await supabase.storage.from("order-documents").createSignedUrl(path, 300);
-    if (error || !data) return toast.error("Nepavyko atidaryti failo.");
+    if (error || !data) {
+      toast.error("Nepavyko atidaryti failo.");
+      return;
+    }
     window.open(data.signedUrl, "_blank", "noopener");
   }
 
