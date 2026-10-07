@@ -261,6 +261,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     if (Object.keys(errs).length) return;
     setPaying(true);
     fd.set("plan", plan.id);
+    fd.set("phone", normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""));
     all.forEach((f) => fd.append("files", f));
     try {
       const res = await submitOrder({ data: fd });
@@ -275,13 +276,21 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   };
 
   const clear = (name: string) => errors[name] && setErrors((p) => { const n = { ...p }; delete n[name]; return n; });
+  const blur = (name: "fullName" | "email" | "phone") => (e: React.FocusEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    if (!value.trim()) return; // tuščio lauko netikriname išlipus – klaida pasirodys siunčiant
+    const r = schema.shape[name].safeParse(value);
+    if (!r.success) setErrors((p) => ({ ...p, [name]: r.error.issues[0].message }));
+  };
   const inputCls = (name: string) =>
     `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
-  const field = (name: string, label: string, type = "text", placeholder = "") => (
+  const field = (name: "fullName" | "email" | "phone", label: string, type = "text", placeholder = "", hint = "") => (
     <label className="block text-sm">
       <span className="font-medium">{label}</span>
-      <input name={name} type={type} maxLength={255} placeholder={placeholder} aria-invalid={!!errors[name]} onChange={() => clear(name)} className={inputCls(name)} />
-      {errors[name] && <span role="alert" className="mt-1 block text-xs text-destructive">{errors[name]}</span>}
+      <input name={name} type={type} maxLength={255} placeholder={placeholder} aria-invalid={!!errors[name]} onChange={() => clear(name)} onBlur={blur(name)} className={inputCls(name)} />
+      {errors[name]
+        ? <span role="alert" className="mt-1 block text-xs text-destructive">{errors[name]}</span>
+        : hint && <span className="mt-1 block text-xs text-muted-foreground">{hint}</span>}
     </label>
   );
 
