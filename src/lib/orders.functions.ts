@@ -67,7 +67,7 @@ export const submitOrder = createServerFn({ method: "POST" })
     }
     const { error } = await supabaseAdmin.from("orders").insert({
       order_number: orderNumber, plan_id: f.plan.toLowerCase(), plan_name: plan.name, price: plan.price,
-      first_name: first, last_name: last, email: f.email, phone: f.phone,
+      first_name: first, last_name: last, email: f.email, phone: normalizePhone(f.phone)!,
       comment: sanitize(f.komentaras) || null, file_paths: paths,
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
