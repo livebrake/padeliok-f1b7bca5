@@ -411,10 +411,7 @@ const companySchema = z.object({
     .trim()
     .min(1, "Prašome įvesti įmonės kodą.")
     .refine((v) => /^\d+$/.test(v.replace(/\s/g, "")), "Įmonės kode gali būti tik skaitmenys.")
-    .refine(
-      (v) => /^(\d{7}|\d{9})$/.test(v.replace(/\s/g, "")),
-      "Įmonės kodą turi sudaryti 9 skaitmenys (senesnių įmonių – 7).",
-    ),
+    .refine((v) => /^\d{9}$/.test(v.replace(/\s/g, "")), "Įmonės kodą turi sudaryti 9 skaitmenys"),
   companyAddress: z
     .string()
     .trim()
@@ -544,10 +541,20 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       <input
         name={name}
         type={type}
-        maxLength={255}
+        maxLength={name === "companyCode" ? 9 : name === "vatCode" ? 14 : 255}
+        inputMode={name === "companyCode" ? "numeric" : undefined}
         placeholder={placeholder}
         aria-invalid={!!errors[name]}
-        onChange={() => clear(name)}
+        onChange={(e) => {
+          const el = e.currentTarget;
+          if (name === "companyCode") el.value = el.value.replace(/\D/g, "").slice(0, 9);
+          if (name === "vatCode") {
+            let v = el.value.toUpperCase().replace(/\s/g, "");
+            if (/^\d/.test(v)) v = "LT" + v;
+            el.value = v.replace(/[^A-Z0-9]/g, "").slice(0, 14);
+          }
+          clear(name);
+        }}
         onBlur={blur(name)}
         className={inputCls(name)}
       />
