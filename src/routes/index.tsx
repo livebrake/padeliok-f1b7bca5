@@ -306,8 +306,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           ))}
         </div>
         <div className="grid gap-4 sm:grid-cols-2">
-          <div className="sm:col-span-2">{field("fullName", "Vardas ir pavardė")}</div>
-          {field("email", "El. pašto adresas", "email", "vardas@pavyzdys.lt")}{field("phone", "Telefono numeris", "tel", "+37060000000")}
+          <div className="sm:col-span-2">{field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis", "Įveskite vardą ir pavardę")}</div>
+          {field("email", "El. pašto adresas", "email", "vardas@pastas.lt")}
+          {field("phone", "Telefono numeris", "tel", "+370 600 00000", "Pvz.: +370 600 00000 arba 0 600 00000")}
         </div>
         <label className="block text-sm">
           <span className="font-medium">Komentaras / Papildoma informacija <span className="text-muted-foreground">(neprivaloma)</span></span>

@@ -9,11 +9,18 @@ const PRICES: Record<string, { name: string; price: number }> = {
 
 const sanitize = (s: string) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
 
+const normalizePhone = (raw: string): string | null => {
+  const digits = raw.replace(/\D/g, "");
+  if (digits.startsWith("8")) return null; // senasis „8“ prefiksas nebenaudojamas
+  const national = digits.startsWith("370") ? digits.slice(3) : digits.startsWith("0") ? digits.slice(1) : digits;
+  return /^6\d{7}$/.test(national) ? `+370${national}` : null;
+};
+
 const fields = z.object({
   plan: z.string().max(50),
-  fullName: z.string().trim().min(1).max(120),
+  fullName: z.string().trim().min(1).max(120).refine((v) => !/\d/.test(v) && v.split(/\s+/).length >= 2),
   email: z.string().trim().email().max(255),
-  phone: z.string().trim().regex(/^\+?[0-9\s()-]{8,20}$/),
+  phone: z.string().trim().min(1).max(30).refine((v) => normalizePhone(v) !== null),
   komentaras: z.string().max(1000).optional().default(""),
 });
 
