@@ -406,7 +406,21 @@ const schema = z.object({
         });
       }
     }),
-  komentaras: z.string().max(1000).optional(),
+  projectGoal: z.enum(
+    [
+      "Keisti sklypo paskirtį",
+      "Statyti vienbutį / dvibutį",
+      "Statyti daugiabutį",
+      "Statyti komercines patalpas",
+      "Kita",
+    ],
+    { message: "Pasirinkite, ką planuojate." },
+  ),
+  komentaras: z
+    .string()
+    .trim()
+    .min(1, "Aprašykite savo užduotį – šis laukas būtinas.")
+    .max(1000, "Aprašymas per ilgas (iki 1000 simbolių)."),
 });
 const companySchema = z.object({
   companyName: z
@@ -692,17 +706,70 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           )}
           {field("phone", "Telefono numeris", "tel", "+370 600 00000", "Pvz.: +370 600 00000 arba 0 600 00000")}
         </div>
+        <div className="block text-sm">
+          <span className="font-medium">
+            Planuoju <span className="text-destructive">*</span>
+          </span>
+          <div
+            role="radiogroup"
+            aria-label="Planuoju"
+            className="mt-2 flex flex-wrap gap-2"
+          >
+            {[
+              "Keisti sklypo paskirtį",
+              "Statyti vienbutį / dvibutį",
+              "Statyti daugiabutį",
+              "Statyti komercines patalpas",
+              "Kita",
+            ].map((g) => (
+              <label key={g} className="cursor-pointer">
+                <input
+                  type="radio"
+                  name="projectGoal"
+                  value={g}
+                  required
+                  className="peer sr-only"
+                  onChange={() => clear("projectGoal")}
+                />
+                <span
+                  className={`inline-flex cursor-pointer items-center rounded-full border px-4 py-1.5 text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${
+                    errors["projectGoal"] ? "border-destructive" : "border-border hover:bg-muted"
+                  }`}
+                >
+                  {g}
+                </span>
+              </label>
+            ))}
+          </div>
+          {errors["projectGoal"] && (
+            <span role="alert" className="mt-1 block text-xs text-destructive">
+              {errors["projectGoal"]}
+            </span>
+          )}
+        </div>
         <label className="block text-sm">
           <span className="font-medium">
-            Komentaras / Papildoma informacija <span className="text-muted-foreground">(neprivaloma)</span>
+            Trumpas užduoties aprašymas ir lūkesčiai <span className="text-destructive">*</span>
           </span>
           <textarea
             name="komentaras"
+            required
             maxLength={1000}
-            rows={3}
-            placeholder="Arba klausimai architektui…"
-            className="mt-1 w-full rounded-md border border-input bg-background px-3 py-2 outline-none focus:ring-2 focus:ring-ring"
+            rows={4}
+            placeholder="Aprašykite savo viziją, planuojamų statinių dydį, aukštingumą ar specifinius klausimus architektui..."
+            aria-invalid={!!errors["komentaras"]}
+            onChange={(e) => clear("komentaras")}
+            className={inputCls("komentaras")}
           />
+          {errors["komentaras"] ? (
+            <span role="alert" className="mt-1 block text-xs text-destructive">
+              {errors["komentaras"]}
+            </span>
+          ) : (
+            <span className="mt-1 block text-xs text-muted-foreground">
+              Aprašykite savo viziją, planuojamų statinių dydį, aukštingumą ar specifinius klausimus architektui...
+            </span>
+          )}
         </label>
         <div
           className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}
