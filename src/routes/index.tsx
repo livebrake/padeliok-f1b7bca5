@@ -168,7 +168,7 @@ function Index() {
             {[
               [MapPin, "Kauno m. ir Kauno r. specifikacija"],
               [Clock, "Atsakymas per 48–72 val."],
-              [FileText, "Aiški architekto išvada (PDF)"],
+              [FileText, "Aiški profesionalo išvada (PDF)"],
             ].map(([I, t]) => {
               const Icon = I as typeof MapPin;
               return (
