@@ -434,7 +434,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     req = true,
   ) => (
     <label className="block text-sm">
-      <span className="font-medium">{label} {req ? <span className="text-destructive">*</span> : <span className="font-normal text-muted-foreground">(neprivaloma)</span>}</span>
+      <span className="font-medium">{label} {req ? <span className="text-destructive">*</span> : null}</span>
       <input
         name={name}
         required={req}
@@ -573,7 +573,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                   "Su kuo derinsime užsakymą",
                   false,
                 )
-              : field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis", "Įveskite vardą ir pavardę")}
+              : field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis")}
           </div>
           {field(
             "email",
@@ -648,7 +648,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             </span>
           )}
         </label>
-        <div className="text-sm font-medium">Užsakymo dokumentai <span className="text-destructive">*</span> <span className="font-normal text-muted-foreground">(įkelkite bent vieną iš dviejų)</span></div>
+        <div className="text-sm font-medium">Užsakymo dokumentai <span className="text-destructive">*</span></div>
         <div
           className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}
         >
