@@ -756,7 +756,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             required
             maxLength={1000}
             rows={4}
-            placeholder="Aprašykite savo viziją, planuojamų statinių dydį, aukštingumą ar specifinius klausimus architektui..."
+            placeholder="Aprašykite savo viziją, planuojamus statinius ir kitus specifinius klausimus profesionalui..."
             aria-invalid={!!errors["komentaras"]}
             onChange={(e) => clear("komentaras")}
             className={inputCls("komentaras")}
@@ -767,7 +767,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             </span>
           ) : (
             <span className="mt-1 block text-xs text-muted-foreground">
-              Aprašykite savo viziją, planuojamų statinių dydį, aukštingumą ar specifinius klausimus architektui...
+              Aprašykite savo viziją, planuojamus statinius ir kitus specifinius klausimus profesionalui...
             </span>
           )}
         </label>
