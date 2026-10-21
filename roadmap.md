@@ -1,0 +1,3 @@
+- [ ] Add required indicators and shared checkout validation with conditional VAT.
+- [ ] Add required terms agreement and preserve checkout when opening terms.
+- [ ] Test rules and verify complete checkout flow.
