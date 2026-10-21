@@ -36,6 +36,7 @@ export type Database = {
           plan_id: string
           plan_name: string
           price: number
+          project_goal: string | null
           status: string
           vat_code: string | null
         }
@@ -60,6 +61,7 @@ export type Database = {
           plan_id?: string
           plan_name: string
           price: number
+          project_goal?: string | null
           status?: string
           vat_code?: string | null
         }
@@ -84,6 +86,7 @@ export type Database = {
           plan_id?: string
           plan_name?: string
           price?: number
+          project_goal?: string | null
           status?: string
           vat_code?: string | null
         }

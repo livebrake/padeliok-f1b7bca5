@@ -16,12 +16,21 @@ const normalizePhone = (raw: string): string | null => {
   return /^6\d{7}$/.test(national) ? `+370${national}` : null;
 };
 
+const PROJECT_GOALS = [
+  "Keisti sklypo paskirtį",
+  "Statyti vienbutį / dvibutį",
+  "Statyti daugiabutį",
+  "Statyti komercines patalpas",
+  "Kita",
+] as const;
+
 const fields = z.object({
   plan: z.string().max(50),
   fullName: z.string().trim().min(1).max(120).refine((v) => !/\d/.test(v)),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().min(1).max(30).refine((v) => normalizePhone(v) !== null),
-  komentaras: z.string().max(1000).optional().default(""),
+  projectGoal: z.enum(PROJECT_GOALS, { message: "Pasirinkite, ką planuojate." }),
+  komentaras: z.string().trim().min(1, "Aprašymas būtinas.").max(1000),
 });
 
 const MAX_FILE = 20 * 1024 * 1024;
@@ -39,7 +48,8 @@ export const submitOrder = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<SubmitResult> => {
     const parsed = fields.safeParse({
       plan: data.get("plan"), fullName: data.get("fullName"), email: data.get("email"),
-      phone: data.get("phone"), komentaras: data.get("komentaras") ?? "",
+      phone: data.get("phone"), projectGoal: data.get("projectGoal"),
+      komentaras: String(data.get("komentaras") ?? "").trim(),
     });
     if (!parsed.success) return { ok: false, code: "validation" };
     const f = parsed.data;
@@ -59,6 +69,8 @@ export const submitOrder = createServerFn({ method: "POST" })
     }
     const plan = PRICES[f.plan.toLowerCase()];
     if (!plan) return { ok: false, code: "validation" };
+    const comment = sanitize(f.komentaras);
+    if (!comment) return { ok: false, code: "validation" };
     const files = data.getAll("files").filter((x): x is File => x instanceof File && x.size > 0);
     if (!files.length || files.length > 20 || files.some((x) => x.size > MAX_FILE || !EXT.test(x.name)))
       return { ok: false, code: "validation" };
@@ -92,7 +104,8 @@ export const submitOrder = createServerFn({ method: "POST" })
       company_address: company?.company_address ?? null,
       vat_code: company?.vat_code ?? null,
       contact_person: isCo ? fullName : null,
-      comment: sanitize(f.komentaras) || null,
+      project_goal: f.projectGoal,
+      comment,
       file_paths: paths,
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
