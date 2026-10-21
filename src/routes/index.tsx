@@ -70,7 +70,7 @@ const PLANS: Plan[] = [
     features: [
       "Viskas iš Standartinio plano",
       "Detaliojo plano / specialiųjų sąlygų analizė",
-      "Architekto komentarai",
+      "Profesionalo komentarai",
       "Preliminarus užstatymo plotas",
     ],
   },
