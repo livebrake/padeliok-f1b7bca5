@@ -27,7 +27,7 @@ const PROJECT_GOALS = [
 
 const fields = z.object({
   plan: z.string().max(50),
-  fullName: z.string().trim().min(1).max(120).refine((v) => !/\d/.test(v)),
+  fullName: z.string().trim().max(120).refine((v) => !/\d/.test(v)),
   email: z.string().trim().email().max(255),
   phone: z.string().trim().min(1).max(30).refine((v) => normalizePhone(v) !== null),
   projectGoal: z.enum(PROJECT_GOALS, { message: "Pasirinkite, ką planuojate." }),
@@ -58,18 +58,19 @@ export const submitOrder = createServerFn({ method: "POST" })
     if (!parsed.success) return { ok: false, code: "validation" };
     const f = parsed.data;
     const isCo = data.get("clientType") === "juridinis";
+    if (!isCo && !f.fullName) return { ok: false, code: "validation" };
     if (!isCo && f.fullName.split(/\s+/).length < 2) return { ok: false, code: "validation" };
     const noVat = data.get("noVat") === "1";
     const str = (k: string) => sanitize(String(data.get(k) ?? "")).replace(/\s+/g, " ");
-    let company: { company_name: string; company_code: string; company_address: string; vat_code: string } | null = null;
+    let company: { company_name: string; company_code: string; company_address: string | null; vat_code: string } | null = null;
     if (isCo) {
       const name = str("companyName").slice(0, 200);
       const code = str("companyCode").replace(/\s/g, "");
       const addr = str("companyAddress").slice(0, 300);
       const vat = str("vatCode").replace(/\s/g, "").toUpperCase();
-      if (name.length < 2 || !/^\d{9}$/.test(code) || !/\d/.test(addr) || addr.length < 5) return { ok: false, code: "validation" };
+      if (name.length < 2 || !/^\d{9}$/.test(code) || (addr && (!/\d/.test(addr) || addr.length < 5))) return { ok: false, code: "validation" };
       if (!noVat && !/^LT(\d{9}|\d{12})$/.test(vat)) return { ok: false, code: "validation" };
-      company = { company_name: name, company_code: code, company_address: addr, vat_code: noVat ? "Ne PVM mokėtojas" : vat };
+      company = { company_name: name, company_code: code, company_address: addr || null, vat_code: noVat ? "Ne PVM mokėtojas" : vat };
     }
     const plan = PRICES[f.plan.toLowerCase()];
     if (!plan) return { ok: false, code: "validation" };
@@ -109,7 +110,7 @@ export const submitOrder = createServerFn({ method: "POST" })
       company_code: company?.company_code ?? null,
       company_address: company?.company_address ?? null,
       vat_code: company?.vat_code ?? null,
-      contact_person: isCo ? fullName : null,
+      contact_person: isCo ? fullName || null : null,
       project_goal: f.projectGoal,
       comment,
       file_paths: paths,
