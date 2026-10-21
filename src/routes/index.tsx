@@ -235,7 +235,7 @@ function Index() {
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-16 md:grid-cols-3">
           {[
             ["1. Užsakote", "Pasirenkate planą ir įkeliate Registrų centro išrašą bei sklypo ribų planą."],
-            ["2. Architektas analizuoja", "Tikrinami teritorijų planavimo dokumentai, apribojimai ir komunikacijos."],
+            ["2. Profesionalai analizuoja", "Tikrinami teritorijų planavimo dokumentai, apribojimai ir komunikacijos."],
             ["3. Gaunate išvadą", "Per 48–72 val. el. paštu gaunate aiškią PDF išvadą."],
           ].map(([t, d]) => (
             <div key={t}>
