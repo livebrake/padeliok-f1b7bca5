@@ -38,6 +38,8 @@ export const Route = createFileRoute("/paslaugu-teikimo-sutartis")({
       { name: "description", content: D },
       { property: "og:title", content: T },
       { property: "og:description", content: D },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: () => <LegalPage title="Paslaugų teikimo taisyklės ir sąlygos" sections={sections} />,

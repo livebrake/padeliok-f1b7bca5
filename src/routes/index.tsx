@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, type ReactNode } from "react";
-import { z } from "zod";
+import { Checkbox } from "@/components/ui/checkbox";
+import { normalizePhone, schema, companySchema, validateCheckout } from "@/lib/order-validation";
+export { normalizePhone } from "@/lib/order-validation";
 import {
   Check,
   Clock,
@@ -341,121 +343,7 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
   );
 }
 
-// Normalizuoja lietuvišką numerį į +3706XXXXXXX; grąžina null, jei negaliojantis.
-export function normalizePhone(raw: string): string | null {
-  const v = raw.trim();
-  if (/[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]/.test(v)) return null;
-  if (v.includes("8")) {
-    const digits = v.replace(/\D/g, "");
-    if (digits.startsWith("8")) return null; // senasis „8“ prefiksas nebenaudojamas
-  }
-  const digits = v.replace(/\D/g, "");
-  let national: string;
-  if (digits.startsWith("370")) national = digits.slice(3);
-  else if (digits.startsWith("0")) national = digits.slice(1);
-  else national = digits;
-  if (!/^6\d{7}$/.test(national)) return null;
-  return `+370${national}`;
-}
-
-const schema = z.object({
-  fullName: z
-    .string()
-    .trim()
-    .min(1, "Prašome įvesti savo vardą ir pavardę.")
-    .max(120)
-    .refine((v) => !/\d/.test(v), "Varde ir pavardėje negali būti skaitmenų."),
-  email: z
-    .string()
-    .trim()
-    .min(1, "Prašome įvesti el. pašto adresą.")
-    .email("Trūksta „@“ arba domeno pabaigos (pvz., vardas@pastas.lt).")
-    .max(255),
-  phone: z
-    .string()
-    .trim()
-    .min(1, "Prašome įvesti telefono numerį.")
-    .superRefine((v, ctx) => {
-      if (/[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]/.test(v)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Telefono numeryje gali būti tik skaitmenys, tarpai ir „+“ pradžioje.",
-        });
-        return;
-      }
-      const digits = v.replace(/\D/g, "");
-      if (digits.startsWith("8")) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Prefiksas „8“ nebenaudojamas – pradėkite nuo 0 arba +370 (pvz., 0 600 00000).",
-        });
-        return;
-      }
-      const national = digits.startsWith("370") ? digits.slice(3) : digits.startsWith("0") ? digits.slice(1) : digits;
-      if (national.length < 8) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Trūksta skaitmenų – lietuviškas numeris turi 8 skaitmenis po kodo (pvz., +370 600 00000).",
-        });
-        return;
-      }
-      if (!/^6\d{7}$/.test(national)) {
-        ctx.addIssue({
-          code: z.ZodIssueCode.custom,
-          message: "Įveskite teisingą telefono numerį (pvz., +370 600 00000 arba 0 600 00000).",
-        });
-      }
-    }),
-  projectGoal: z.enum(
-    [
-      "Keisti sklypo paskirtį",
-      "Statyti vienbutį / dvibutį",
-      "Statyti daugiabutį",
-      "Statyti komercines patalpas",
-      "Kita",
-    ],
-    { message: "Pasirinkite, ką planuojate." },
-  ),
-  komentaras: z
-    .string()
-    .trim()
-    .min(1, "Aprašykite savo užduotį – šis laukas būtinas.")
-    .max(1000, "Aprašymas per ilgas (iki 1000 simbolių)."),
-});
-const companySchema = z.object({
-  companyName: z
-    .string()
-    .trim()
-    .min(1, "Prašome įvesti įmonės pavadinimą.")
-    .max(200)
-    .refine((v) => v.length >= 2, "Įmonės pavadinimas per trumpas."),
-  companyCode: z
-    .string()
-    .trim()
-    .min(1, "Prašome įvesti įmonės kodą.")
-    .refine((v) => /^\d+$/.test(v.replace(/\s/g, "")), "Įmonės kode gali būti tik skaitmenys.")
-    .refine((v) => /^\d{9}$/.test(v.replace(/\s/g, "")), "Įmonės kodą turi sudaryti 9 skaitmenys"),
-  companyAddress: z
-    .string()
-    .trim()
-    .min(1, "Prašome įvesti registracijos adresą.")
-    .max(300)
-    .refine(
-      (v) => /\d/.test(v) && /[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]{2,}/.test(v),
-      "Nurodykite gatvę, namo numerį ir miestą (pvz., Gedimino pr. 1, Vilnius).",
-    ),
-  vatCode: z
-    .string()
-    .trim()
-    .min(1, "Įveskite PVM kodą arba pažymėkite „Ne PVM mokėtojas“.")
-    .refine(
-      (v) => /^LT(\d{9}|\d{12})$/i.test(v.replace(/\s/g, "")),
-      "PVM kodas turi prasidėti „LT“ ir turėti 9 arba 12 skaitmenų (pvz., LT123456789).",
-    ),
-});
 type CompanyKey = keyof typeof companySchema.shape;
-const MAX_FILE = 20 * 1024 * 1024;
-const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
 const MSG = {
   storage: "Nepavyko įkelti failo. Patikrinkite failą ir bandykite dar kartą.",
@@ -471,47 +359,24 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const [paying, setPaying] = useState(false);
   const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
   const [noVat, setNoVat] = useState(false);
+  const [agreement, setAgreement] = useState(false);
+  const [values, setValues] = useState<Record<string, unknown>>({});
   const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];
   const total = all.reduce((s, f) => s + f.size, 0);
 
-  const fileError = (files: File[]) => {
-    if (!files.length) return "Būtina įkelti užsakymo dokumentą/failą.";
-    if (files.some((f) => !FILE_EXT.test(f.name)))
-      return "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
-    if (files.some((f) => f.size > MAX_FILE)) return "Failas per didelis. Maksimalus leistinas dydis yra 20 MB.";
-    return null;
-  };
+  const canSubmit = Object.keys(validateCheckout({ ...values, clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" }, all)).length === 0;
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (paying) return;
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const r = schema.safeParse(Object.fromEntries(fd));
-    const errs: Record<string, string> = {};
-    if (!r.success)
-      r.error.issues.forEach((i) => {
-        const k = String(i.path[0]);
-        if (!errs[k]) errs[k] = i.message;
-      });
-    const fn = String(fd.get("fullName") ?? "").trim();
-    if (!isCo && !errs["fullName"] && fn.split(/\s+/).length < 2)
-      errs["fullName"] = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";
-    if (isCo) {
-      const cs = noVat ? companySchema.omit({ vatCode: true }) : companySchema;
-      const cr = cs.safeParse(Object.fromEntries(fd));
-      if (!cr.success)
-        cr.error.issues.forEach((i) => {
-          const k = String(i.path[0]);
-          if (!errs[k]) errs[k] = i.message;
-        });
-    }
-    const fe = fileError(all);
-    if (fe) errs["files"] = fe;
+    const errs = validateCheckout({ ...Object.fromEntries(fd), clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" }, all);
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setPaying(true);
+    fd.set("agreement", agreement ? "1" : "0");
     fd.set("plan", plan.id);
     fd.set("clientType", clientType);
     fd.set("noVat", noVat ? "1" : "0");
@@ -525,6 +390,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         return;
       }
       form.reset();
+      setAgreement(false);
+      setValues({});
       setRc([]);
       setRibos([]);
       setErrors({});
@@ -545,10 +412,12 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     });
   const blur = (name: "fullName" | "email" | "phone" | CompanyKey) => (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
-    if (!value.trim()) return; // tuščio lauko netikriname išlipus – klaida pasirodys siunčiant
     const s = name in schema.shape ? schema.shape[name as "fullName"] : companySchema.shape[name as CompanyKey];
     const r = s.safeParse(value);
     if (!r.success) setErrors((p) => ({ ...p, [name]: r.error.issues[0]?.message ?? "Neteisinga reikšmė." }));
+    else if (name === "fullName" && !isCo && value.trim().split(/\s+/).length < 2)
+      setErrors((p) => ({ ...p, fullName: "Prašome įrašyti ir pavardę (mažiausiai du žodžius)." }));
+    else clear(name);
   };
   const inputCls = (name: string) =>
     `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
@@ -560,9 +429,10 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     hint = "",
   ) => (
     <label className="block text-sm">
-      <span className="font-medium">{label}</span>
+      <span className="font-medium">{label} <span className="text-destructive">*</span></span>
       <input
         name={name}
+        required
         type={type}
         maxLength={name === "companyCode" ? 9 : name === "vatCode" ? 14 : 255}
         inputMode={name === "companyCode" ? "numeric" : undefined}
@@ -600,7 +470,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   };
 
   return (
-    <form onSubmit={submit} noValidate className="grid md:grid-cols-[1fr_300px]">
+    <form onSubmit={submit} onChange={(e) => setValues(Object.fromEntries(new FormData(e.currentTarget)))} noValidate className="grid md:grid-cols-[1fr_300px]">
       <div className="space-y-5 p-6 md:p-8">
         <h2 className="text-2xl font-bold">Krepšelis</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -700,7 +570,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           </div>
           {field(
             "email",
-            isCo ? "El. paštas (sąskaitoms ir ryšiui)" : "El. pašto adresas",
+            "El. pašto adresas",
             "email",
             "vardas@pastas.lt",
           )}
@@ -771,6 +641,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             </span>
           )}
         </label>
+        <div className="text-sm font-medium">Užsakymo dokumentai <span className="text-destructive">*</span></div>
         <div
           className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}
         >
@@ -815,7 +686,16 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           <span>{plan.price} €</span>
         </div>
         <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
-        <Btn type="submit" disabled={paying} aria-busy={paying} className="mt-auto w-full py-3 disabled:opacity-70">
+        <div className="mt-auto flex items-start gap-2 text-sm">
+          <Checkbox id="order-agreement" name="agreement" value="1" required checked={agreement} disabled={paying}
+            onCheckedChange={(checked) => { setAgreement(checked === true); clear("agreement"); }} className="mt-0.5" />
+          <label htmlFor="order-agreement" className="leading-relaxed">
+            Sutinku su <a href="/paslaugu-teikimo-sutartis" target="_blank" rel="noopener noreferrer"
+              className="text-primary underline underline-offset-2" onClick={(e) => e.stopPropagation()}>Paslaugų teikimo sutartimi</a> <span className="text-destructive">*</span>
+          </label>
+        </div>
+        {errors.agreement && <p role="alert" className="text-xs text-destructive">{errors.agreement}</p>}
+        <Btn type="submit" disabled={paying || !canSubmit} aria-busy={paying} className="w-full py-3 disabled:opacity-70">
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />

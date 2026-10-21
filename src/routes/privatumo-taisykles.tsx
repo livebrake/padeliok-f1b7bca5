@@ -40,6 +40,8 @@ export const Route = createFileRoute("/privatumo-taisykles")({
       { name: "description", content: D },
       { property: "og:title", content: T },
       { property: "og:description", content: D },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary" },
     ],
   }),
   component: () => <LegalPage title="Privatumo politika" sections={sections} />,
