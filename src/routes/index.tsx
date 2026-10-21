@@ -46,7 +46,7 @@ const PLANS: Plan[] = [
       "Pagrindiniai sklypo rodikliai",
       "Užstatymo zonų patikrinimas",
       "Ribojimų ir apsaugos zonų patikra",
-      "Architekto išvada (PDF)",
+      "Profesionalo išvada (PDF)",
     ],
   },
   {
