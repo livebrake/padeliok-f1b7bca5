@@ -148,7 +148,7 @@ function Index() {
             <MapPin className="h-3 w-3" /> Kaunas · Kauno rajonas
           </p>
           <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
-            Prieš pirkdami sklypą Kaune ar Kauno rajone – sužinokite, ką jame{" "}
+            Prieš pirkdami sklypą – sužinokite, ką jame{" "}
             <span className="text-primary">iš tiesų</span> galite statyti.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
