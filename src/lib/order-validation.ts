@@ -97,10 +97,9 @@ export const companySchema = z.object({
   companyAddress: z
     .string()
     .trim()
-    .min(1, "Prašome įvesti registracijos adresą.")
     .max(300)
     .refine(
-      (v) => /\d/.test(v) && /[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]{2,}/.test(v),
+      (v) => !v || /\d/.test(v) && /[a-zA-ZąčęėįšųūžĄČĘĖĮŠŲŪŽ]{2,}/.test(v),
       "Nurodykite gatvę, namo numerį ir miestą (pvz., Gedimino pr. 1, Vilnius).",
     ),
   vatCode: z
@@ -125,8 +124,9 @@ export function validateCheckout(values: Record<string, unknown>, files: { name:
       if (!errors[key]) errors[key] = issue.message;
     });
   };
-  collect(schema.safeParse(values));
   const isCompany = values["clientType"] === "juridinis";
+  const contactEmpty = isCompany && !String(values["fullName"] ?? "").trim();
+  collect((contactEmpty ? schema.omit({ fullName: true }) : schema).safeParse(values));
   const fullName = typeof values["fullName"] === "string" ? values["fullName"].trim() : "";
   if (!isCompany && !errors["fullName"] && fullName.split(/\s+/).length < 2)
     errors["fullName"] = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";

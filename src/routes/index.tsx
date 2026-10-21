@@ -1,6 +1,8 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { serviceTermsSections } from "@/lib/service-terms";
 import { normalizePhone, schema, companySchema, validateCheckout } from "@/lib/order-validation";
 export { normalizePhone } from "@/lib/order-validation";
 import {
@@ -360,6 +362,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
   const [noVat, setNoVat] = useState(false);
   const [agreement, setAgreement] = useState(false);
+  const [termsOpen, setTermsOpen] = useState(false);
   const [values, setValues] = useState<Record<string, unknown>>({});
   const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];
@@ -412,6 +415,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     });
   const blur = (name: "fullName" | "email" | "phone" | CompanyKey) => (e: React.FocusEvent<HTMLInputElement>) => {
     const value = e.target.value;
+    if (!value.trim() && (name === "companyAddress" || (name === "fullName" && isCo))) return clear(name);
     const s = name in schema.shape ? schema.shape[name as "fullName"] : companySchema.shape[name as CompanyKey];
     const r = s.safeParse(value);
     if (!r.success) setErrors((p) => ({ ...p, [name]: r.error.issues[0]?.message ?? "Neteisinga reikšmė." }));
@@ -427,12 +431,13 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     type = "text",
     placeholder = "",
     hint = "",
+    req = true,
   ) => (
     <label className="block text-sm">
-      <span className="font-medium">{label} <span className="text-destructive">*</span></span>
+      <span className="font-medium">{label} {req ? <span className="text-destructive">*</span> : <span className="font-normal text-muted-foreground">(neprivaloma)</span>}</span>
       <input
         name={name}
-        required
+        required={req}
         type={type}
         maxLength={name === "companyCode" ? 9 : name === "vatCode" ? 14 : 255}
         inputMode={name === "companyCode" ? "numeric" : undefined}
@@ -552,6 +557,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                 "text",
                 "Gedimino pr. 1, Vilnius",
                 "Gatvė, namo nr., miestas",
+                false,
               )}
             </div>
           </div>
@@ -565,6 +571,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                   "text",
                   "Jonas Jonaitis",
                   "Su kuo derinsime užsakymą",
+                  false,
                 )
               : field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis", "Įveskite vardą ir pavardę")}
           </div>
@@ -641,7 +648,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             </span>
           )}
         </label>
-        <div className="text-sm font-medium">Užsakymo dokumentai <span className="text-destructive">*</span></div>
+        <div className="text-sm font-medium">Užsakymo dokumentai <span className="text-destructive">*</span> <span className="font-normal text-muted-foreground">(įkelkite bent vieną iš dviejų)</span></div>
         <div
           className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}
         >
@@ -690,10 +697,24 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           <Checkbox id="order-agreement" name="agreement" value="1" required checked={agreement} disabled={paying}
             onCheckedChange={(checked) => { setAgreement(checked === true); clear("agreement"); }} className="mt-0.5" />
           <label htmlFor="order-agreement" className="leading-relaxed">
-            Sutinku su <a href="/paslaugu-teikimo-sutartis" target="_blank" rel="noopener noreferrer"
-              className="text-primary underline underline-offset-2" onClick={(e) => e.stopPropagation()}>Paslaugų teikimo sutartimi</a> <span className="text-destructive">*</span>
+            Sutinku su <button type="button"
+              className="text-primary underline underline-offset-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTermsOpen(true); }}>Paslaugų teikimo sutartimi</button> <span className="text-destructive">*</span>
           </label>
         </div>
+        <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
+          <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
+            <DialogHeader><DialogTitle>Paslaugų teikimo taisyklės ir sąlygos</DialogTitle></DialogHeader>
+            <div className="space-y-5 text-sm">
+              {serviceTermsSections.map((sec) => (
+                <section key={sec.title}>
+                  <h4 className="font-semibold">{sec.title}</h4>
+                  {sec.paragraphs?.map((p) => <p key={p} className="mt-2 leading-relaxed text-muted-foreground">{p}</p>)}
+                </section>
+              ))}
+            </div>
+            <Btn type="button" onClick={() => { setAgreement(true); clear("agreement"); setTermsOpen(false); }}>Sutinku</Btn>
+          </DialogContent>
+        </Dialog>
         {errors["agreement"] && <p role="alert" className="text-xs text-destructive">{errors["agreement"]}</p>}
         <Btn type="submit" disabled={paying || !canSubmit} aria-busy={paying} className="w-full py-3 disabled:opacity-70">
           {paying ? (
