@@ -43,6 +43,13 @@
       "when": 1791377334373,
       "tag": "0005_order_number_prefix_pad",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1792589948592,
+      "tag": "0006_add_project_goal_to_orders",
+      "breakpoints": true
     }
   ]
 }
