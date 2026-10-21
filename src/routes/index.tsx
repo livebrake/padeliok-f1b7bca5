@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
     name: "Standartinis",
     price: 99,
     popular: true,
-    desc: "Optimalus pasirinkimas perkant/parduodant",
+    desc: "Optimalus pasirinkimas perkant / parduodant",
     features: [
       "Viskas iš Bazinio plano",
       "Komunikacijų įvertinimas (elektra, vanduo, dujos)",
@@ -206,7 +206,7 @@ function Index() {
                 </span>
               )}
               <h3 className="text-xl font-semibold">{p.name}</h3>
-              <p className="text-sm text-muted-foreground">{p.desc}</p>
+              <p className="mt-1 min-h-[2.5rem] text-sm leading-snug text-muted-foreground text-balance">{p.desc}</p>
               <p className="mt-5 font-display text-4xl font-bold">{p.price} €</p>
               <ul className="mt-6 flex-1 space-y-3 text-sm">
                 {p.features.map((f) => (
