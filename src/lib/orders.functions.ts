@@ -87,8 +87,6 @@ export const submitOrder = createServerFn({ method: "POST" })
       paths.push(path);
     }
     const fullName = sanitize(f.fullName);
-    const comment = sanitize(f.komentaras);
-    if (!comment) return { ok: false, code: "validation" };
     const { error } = await supabaseAdmin.from("orders").insert({
       order_number: orderNumber,
       full_name: fullName,
