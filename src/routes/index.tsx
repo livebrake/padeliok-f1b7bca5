@@ -694,7 +694,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               className="text-primary underline underline-offset-2" onClick={(e) => e.stopPropagation()}>Paslaugų teikimo sutartimi</a> <span className="text-destructive">*</span>
           </label>
         </div>
-        {errors.agreement && <p role="alert" className="text-xs text-destructive">{errors.agreement}</p>}
+        {errors["agreement"] && <p role="alert" className="text-xs text-destructive">{errors["agreement"]}</p>}
         <Btn type="submit" disabled={paying || !canSubmit} aria-busy={paying} className="w-full py-3 disabled:opacity-70">
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">

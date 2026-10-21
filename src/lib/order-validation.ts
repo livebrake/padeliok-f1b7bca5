@@ -112,7 +112,6 @@ export const companySchema = z.object({
       "PVM kodas turi prasidėti „LT“ ir turėti 9 arba 12 skaitmenų (pvz., LT123456789).",
     ),
 });
-type CompanyKey = keyof typeof companySchema.shape;
 const MAX_FILE = 20 * 1024 * 1024;
 const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
 
@@ -127,16 +126,16 @@ export function validateCheckout(values: Record<string, unknown>, files: { name:
     });
   };
   collect(schema.safeParse(values));
-  const isCompany = values.clientType === "juridinis";
-  const fullName = typeof values.fullName === "string" ? values.fullName.trim() : "";
-  if (!isCompany && !errors.fullName && fullName.split(/\s+/).length < 2)
-    errors.fullName = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";
-  if (isCompany) collect((values.noVat === "1" ? companySchema.omit({ vatCode: true }) : companySchema).safeParse(values));
-  if (!agreementSchema.safeParse(values.agreement).success)
-    errors.agreement = "Būtina sutikti su Paslaugų teikimo sutartimi.";
-  if (!files.length) errors.files = "Būtina įkelti užsakymo dokumentą/failą.";
-  else if (files.length > 20) errors.files = "Galima įkelti daugiausia 20 failų.";
-  else if (files.some((file) => !FILE_EXT.test(file.name))) errors.files = "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
-  else if (files.some((file) => file.size <= 0 || file.size > MAX_FILE)) errors.files = "Failas turi būti netuščias ir neviršyti 20 MB.";
+  const isCompany = values["clientType"] === "juridinis";
+  const fullName = typeof values["fullName"] === "string" ? values["fullName"].trim() : "";
+  if (!isCompany && !errors["fullName"] && fullName.split(/\s+/).length < 2)
+    errors["fullName"] = "Prašome įrašyti ir pavardę (mažiausiai du žodžius).";
+  if (isCompany) collect((values["noVat"] === "1" ? companySchema.omit({ vatCode: true }) : companySchema).safeParse(values));
+  if (!agreementSchema.safeParse(values["agreement"]).success)
+    errors["agreement"] = "Būtina sutikti su Paslaugų teikimo sutartimi.";
+  if (!files.length) errors["files"] = "Būtina įkelti užsakymo dokumentą/failą.";
+  else if (files.length > 20) errors["files"] = "Galima įkelti daugiausia 20 failų.";
+  else if (files.some((file) => !FILE_EXT.test(file.name))) errors["files"] = "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
+  else if (files.some((file) => file.size <= 0 || file.size > MAX_FILE)) errors["files"] = "Failas turi būti netuščias ir neviršyti 20 MB.";
   return errors;
 }

@@ -16,11 +16,11 @@ describe("Checkout eligibility", () => {
   });
   it("waives VAT code only with the non-VAT checkbox", () => {
     expect(validateCheckout({ ...company, vatCode: "", noVat: "1" }, files)).toEqual({});
-    expect(validateCheckout({ ...company, vatCode: "", noVat: "0" }, files).vatCode).toBeTruthy();
+    expect(validateCheckout({ ...company, vatCode: "", noVat: "0" }, files)["vatCode"]).toBeTruthy();
   });
   it("requires explicit terms acceptance", () => {
-    expect(validateCheckout({ ...person, agreement: undefined }, files).agreement).toBeTruthy();
-    expect(validateCheckout({ ...person, agreement: "0" }, files).agreement).toBeTruthy();
+    expect(validateCheckout({ ...person, agreement: undefined }, files)["agreement"]).toBeTruthy();
+    expect(validateCheckout({ ...person, agreement: "0" }, files)["agreement"]).toBeTruthy();
     expect(validateCheckout(person, files)).toEqual({});
   });
   it("rejects incorrectly filled mandatory fields", () => {
