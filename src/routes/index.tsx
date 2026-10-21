@@ -712,7 +712,10 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                 </section>
               ))}
             </div>
-            <Btn type="button" onClick={() => { setAgreement(true); clear("agreement"); setTermsOpen(false); }}>Sutinku</Btn>
+            <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
+              <Btn type="button" variant="outline" onClick={() => setTermsOpen(false)}>Nesutinku</Btn>
+              <Btn type="button" onClick={() => { setAgreement(true); clear("agreement"); setTermsOpen(false); }}>Sutinku</Btn>
+            </div>
           </DialogContent>
         </Dialog>
         {errors["agreement"] && <p role="alert" className="text-xs text-destructive">{errors["agreement"]}</p>}
