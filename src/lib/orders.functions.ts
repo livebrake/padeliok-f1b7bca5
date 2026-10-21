@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { validateCheckout } from "@/lib/order-validation";
 
 const PRICES: Record<string, { name: string; price: number }> = {
   bazinis: { name: "Bazinis", price: 49 },
@@ -46,6 +47,9 @@ export const submitOrder = createServerFn({ method: "POST" })
     return data;
   })
   .handler(async ({ data }): Promise<SubmitResult> => {
+    const filesToValidate = data.getAll("files").filter((value): value is File => value instanceof File);
+    if (Object.keys(validateCheckout(Object.fromEntries(data), filesToValidate)).length)
+      return { ok: false, code: "validation" };
     const parsed = fields.safeParse({
       plan: data.get("plan"), fullName: data.get("fullName"), email: data.get("email"),
       phone: data.get("phone"), projectGoal: data.get("projectGoal"),
@@ -89,11 +93,13 @@ export const submitOrder = createServerFn({ method: "POST" })
       paths.push(path);
     }
     const fullName = sanitize(f.fullName);
+    const phone = normalizePhone(f.phone);
+    if (!phone) return { ok: false, code: "validation" };
     const { error } = await supabaseAdmin.from("orders").insert({
       order_number: orderNumber,
       full_name: fullName,
       email: f.email,
-      phone: normalizePhone(f.phone)!,
+      phone,
       plan_name: plan.name,
       price: plan.price,
       status: "Naujas",
