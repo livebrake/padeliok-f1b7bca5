@@ -166,7 +166,7 @@ function Index() {
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
             {[
-              [MapPin, "Kauno m. ir Kauno r. specifikacija"],
+              [MapPin, "Rizikų ir statybos ribojimų įvertinimas"],
               [Clock, "Atsakymas per 48–72 val."],
               [FileText, "Aiški profesionalo išvada (PDF)"],
             ].map(([I, t]) => {
