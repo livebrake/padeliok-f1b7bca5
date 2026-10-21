@@ -161,7 +161,7 @@ function Index() {
             <span className="text-primary">iš tiesų</span> galite statyti.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
-            Išvenkite brangių klaidų. Architekto atliekama sklypo apribojimų, komunikacijų ir statybos galimybių
+            Išvenkite brangių klaidų. Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių
             analizė.
           </p>
           <div className="mt-8 flex flex-wrap gap-3">
