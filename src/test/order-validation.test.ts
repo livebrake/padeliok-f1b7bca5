@@ -30,3 +30,15 @@ describe("Checkout eligibility", () => {
     expect(validateCheckout({ ...person, projectGoal: "", komentaras: " " }, [])).toMatchObject({ projectGoal: expect.any(String), komentaras: expect.any(String), files: expect.any(String) });
   });
 });
+describe("Optional company fields", () => {
+  it("allows empty company address and contact person", () => {
+    expect(validateCheckout({ ...company, companyAddress: "", fullName: "" }, files)).toEqual({});
+  });
+  it("still requires private client name", () => {
+    expect(validateCheckout({ ...person, fullName: "" }, files)["fullName"]).toBeTruthy();
+  });
+  it("accepts one of the two documents", () => {
+    expect(validateCheckout(person, [{ name: "a.pdf", size: 1 }])).toEqual({});
+    expect(validateCheckout(person, [])["files"]).toBeTruthy();
+  });
+});
