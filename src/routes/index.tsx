@@ -54,7 +54,7 @@ const PLANS: Plan[] = [
     name: "Standartinis",
     price: 99,
     popular: true,
-    desc: "Optimalus pasirinkimas perkant",
+    desc: "Optimalus pasirinkimas perkant/parduodant",
     features: [
       "Viskas iš Bazinio plano",
       "Komunikacijų įvertinimas (elektra, vanduo, dujos)",
