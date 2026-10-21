@@ -144,9 +144,18 @@ function Index() {
       >
         <div className="absolute inset-0 bg-background/75" />
         <div className="relative mx-auto max-w-6xl px-5 py-20 md:py-28">
-          <p className="mb-5 inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-muted-foreground">
-            <MapPin className="h-3 w-3" /> Kaunas · Kauno rajonas
-          </p>
+          <div className="mb-5 flex flex-wrap items-center gap-2">
+            <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-muted-foreground">
+              <MapPin className="h-3 w-3" /> Kaunas · Kauno rajonas
+            </p>
+            <p
+              aria-disabled="true"
+              className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-border/50 bg-muted/50 px-3 py-1 font-mono text-xs text-muted-foreground"
+            >
+              <MapPin className="h-3 w-3" /> Vilnius · Klaipėda · Šiauliai (greitai)
+            </p>
+          </div>
+
           <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
             Prieš pirkdami sklypą – sužinokite, ką jame{" "}
             <span className="text-primary">iš tiesų</span> galite statyti.
