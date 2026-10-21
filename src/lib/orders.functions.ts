@@ -69,6 +69,8 @@ export const submitOrder = createServerFn({ method: "POST" })
     }
     const plan = PRICES[f.plan.toLowerCase()];
     if (!plan) return { ok: false, code: "validation" };
+    const comment = sanitize(f.komentaras);
+    if (!comment) return { ok: false, code: "validation" };
     const files = data.getAll("files").filter((x): x is File => x instanceof File && x.size > 0);
     if (!files.length || files.length > 20 || files.some((x) => x.size > MAX_FILE || !EXT.test(x.name)))
       return { ok: false, code: "validation" };
@@ -103,7 +105,7 @@ export const submitOrder = createServerFn({ method: "POST" })
       vat_code: company?.vat_code ?? null,
       contact_person: isCo ? fullName : null,
       project_goal: f.projectGoal,
-      comment: sanitize(f.komentaras),
+      comment,
       file_paths: paths,
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
