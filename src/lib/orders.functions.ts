@@ -116,5 +116,16 @@ export const submitOrder = createServerFn({ method: "POST" })
       file_paths: paths,
     });
     if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
+
+    const fileLinks: { name: string; url: string }[] = [];
+    for (const p of paths) {
+      const { data: s } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(p, 60 * 60 * 24 * 7);
+      if (s?.signedUrl) fileLinks.push({ name: p.split("/").pop()!.slice(9), url: s.signedUrl });
+    }
+    const { sendOrderEmails } = await import("@/lib/order-emails.server");
+    await sendOrderEmails({
+      orderNumber, isCompany: isCo, fullName, email: f.email, phone,
+      planName: plan.name, price: plan.price, projectGoal: f.projectGoal, comment, company, fileLinks,
+    });
     return { ok: true, orderNumber };
   });
