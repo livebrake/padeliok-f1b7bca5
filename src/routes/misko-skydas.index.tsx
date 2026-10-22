@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { matchesOrderQuery } from "@/lib/order-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -179,8 +180,7 @@ function Dashboard() {
         if (to && t > to.getTime()) return false;
       }
       if (!s) return true;
-      return [o.order_number, o.full_name ?? "", o.company_name ?? "", o.email, o.phone]
-        .some((v) => v.toLowerCase().includes(s));
+      return matchesOrderQuery(s, o);
     });
     const dir = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
@@ -243,7 +243,7 @@ function Dashboard() {
           </Tabs>
           <div className="relative md:w-80">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Ieškoti: vardas, el. paštas, Nr." value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input className="pl-9" placeholder="Ieškoti: Nr. PAD-1004, vardas, el. paštas" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </div>
 
