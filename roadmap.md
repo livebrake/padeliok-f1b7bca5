@@ -1,3 +1,4 @@
 - [x] Add required indicators and shared checkout validation with conditional VAT.
 - [x] Add required terms agreement and preserve checkout when opening terms.
 - [x] Test rules (12 passed) and verify complete checkout flow (PAD-1002). Existing routing smoke tests fail because the document shell renders outside their container; unrelated to checkout.
+- [ ] Keep submission clickable, show every validation error, and scroll to the first invalid field; verify in the browser.
