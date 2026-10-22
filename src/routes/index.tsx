@@ -23,7 +23,7 @@ import { submitOrder } from "@/lib/orders.functions";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC =
-  "Architekto atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 48–72 val.";
+  "Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 48–72 val.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -378,10 +378,13 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     setErrors(errs);
     if (Object.keys(errs).length) {
       requestAnimationFrame(() => {
-        const firstInvalid = Array.from(form.querySelectorAll<HTMLElement>("[data-validation-field]"))
-          .find((element) => errs[element.dataset["validationField"] ?? ""]);
+        const firstInvalid = Array.from(form.querySelectorAll<HTMLElement>("[data-validation-field]")).find(
+          (element) => errs[element.dataset["validationField"] ?? ""],
+        );
         if (!firstInvalid) return;
-        const control = firstInvalid.querySelector<HTMLElement>('input:not([type="file"]), textarea, button, [tabindex]');
+        const control = firstInvalid.querySelector<HTMLElement>(
+          'input:not([type="file"]), textarea, button, [tabindex]',
+        );
         control?.focus({ preventScroll: true });
         firstInvalid.scrollIntoView({
           behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
@@ -489,11 +492,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   };
 
   return (
-    <form
-      onSubmit={submit}
-      noValidate
-      className="grid md:grid-cols-[1fr_300px]"
-    >
+    <form onSubmit={submit} noValidate className="grid md:grid-cols-[1fr_300px]">
       <div className="space-y-5 p-6 md:p-8">
         <h2 className="text-2xl font-bold">Krepšelis</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -600,7 +599,13 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           <span className="font-medium">
             Planuoju <span className="text-destructive">*</span>
           </span>
-          <div role="radiogroup" aria-label="Planuoju" aria-invalid={!!errors["projectGoal"]} aria-describedby={errors["projectGoal"] ? "order-error-projectGoal" : undefined} className="mt-2 flex flex-wrap gap-2">
+          <div
+            role="radiogroup"
+            aria-label="Planuoju"
+            aria-invalid={!!errors["projectGoal"]}
+            aria-describedby={errors["projectGoal"] ? "order-error-projectGoal" : undefined}
+            className="mt-2 flex flex-wrap gap-2"
+          >
             {[
               "Keisti sklypo paskirtį",
               "Statyti vienbutį/dvibutį",
@@ -619,7 +624,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                 />
                 <span
                   className={`inline-flex cursor-pointer items-center rounded-full border px-4 py-1.5 text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-checked:hover:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${
-                    errors["projectGoal"] ? "border-destructive ring-2 ring-destructive" : "border-border hover:bg-muted"
+                    errors["projectGoal"]
+                      ? "border-destructive ring-2 ring-destructive"
+                      : "border-border hover:bg-muted"
                   }`}
                 >
                   {g}
@@ -780,11 +787,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             {errors["agreement"]}
           </p>
         )}
-        <Btn
-          type="submit"
-          aria-busy={paying}
-          className="w-full py-3"
-        >
+        <Btn type="submit" aria-busy={paying} className="w-full py-3">
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
@@ -870,7 +873,7 @@ function Success({ onClose, orderId }: { onClose: () => void; orderId: string })
       <CheckCircle2 className="mx-auto h-16 w-16 text-success" />
       <h2 className="mt-5 text-2xl font-bold md:text-3xl">Užsakymas gautas!</h2>
       <p className="mx-auto mt-4 max-w-lg text-muted-foreground">
-        Jūsų užsakymo ID: <span className="font-mono font-medium text-foreground">#{orderId}</span>. Architektas jau
+        Jūsų užsakymo ID: <span className="font-mono font-medium text-foreground">#{orderId}</span>. Specialistas jau
         pradeda nagrinėti sklypo dokumentus. Atsakymą gausite nurodytu el.paštu.
       </p>
       <Btn className="mt-8" onClick={onClose}>
