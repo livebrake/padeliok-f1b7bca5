@@ -4,6 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
+import { matchesOrderQuery } from "@/lib/order-search";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -179,8 +180,7 @@ function Dashboard() {
         if (to && t > to.getTime()) return false;
       }
       if (!s) return true;
-      return [o.order_number, o.full_name ?? "", o.company_name ?? "", o.email, o.phone]
-        .some((v) => v.toLowerCase().includes(s));
+      return matchesOrderQuery(s, o);
     });
     const dir = sortDir === "asc" ? 1 : -1;
     return [...list].sort((a, b) => {
