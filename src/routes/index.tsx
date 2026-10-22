@@ -3,8 +3,19 @@ import { useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { serviceTermsSections } from "@/lib/service-terms";
-import { normalizePhone, schema, companySchema, validateCheckout } from "@/lib/order-validation";
+import {
+  normalizePhone,
+  schema,
+  companySchema,
+  validateCheckout,
+  MAX_FILE_SIZE,
+  MAX_FILES,
+  FILE_TYPE_MESSAGE,
+  FILE_SIZE_MESSAGE,
+  FILE_COUNT_MESSAGE,
+} from "@/lib/order-validation";
 export { normalizePhone } from "@/lib/order-validation";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Check,
   Clock,
@@ -346,12 +357,6 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
 
 type CompanyKey = keyof typeof companySchema.shape;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
-const MSG = {
-  storage: "Nepavyko įkelti failo. Patikrinkite failą ir bandykite dar kartą.",
-  database: "Nepavyko išsaugoti užsakymo duomenų bazėje. Bandykite dar kartą.",
-  validation: "Patikrinkite formos laukus ir bandykite dar kartą.",
-  network: "Tinklo klaida. Patikrinkite interneto ryšį ir bandykite vėl.",
-};
 
 function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
