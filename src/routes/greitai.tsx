@@ -49,15 +49,13 @@ function ComingSoon() {
           Svetainė ruošiama. Greitai susitiksime!
         </h1>
         <form onSubmit={onSubmit} className="mt-8 space-y-3 text-left">
-          <label htmlFor="gate-password" className="text-sm font-medium text-foreground">
-            Slaptažodis
-          </label>
           <Input
             id="gate-password"
             name="password"
             type="password"
             autoComplete="current-password"
             required
+            aria-label="Slaptažodis"
             aria-invalid={error}
             className={error ? "border-destructive" : undefined}
           />
