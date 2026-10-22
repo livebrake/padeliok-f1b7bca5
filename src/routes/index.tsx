@@ -379,7 +379,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     if (Object.keys(errs).length) {
       requestAnimationFrame(() => {
         const firstInvalid = Array.from(form.querySelectorAll<HTMLElement>("[data-validation-field]"))
-          .find((element) => errs[element.dataset.validationField ?? ""]);
+          .find((element) => errs[element.dataset["validationField"] ?? ""]);
         if (!firstInvalid) return;
         const control = firstInvalid.querySelector<HTMLElement>('input:not([type="file"]), textarea, button, [tabindex]');
         control?.focus({ preventScroll: true });
