@@ -14,6 +14,8 @@ import { Analytics } from "@vercel/analytics/react";
 import appCss from "../styles.css?url";
 import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
+import { redirect } from "@tanstack/react-router";
+import { getGateStatus } from "@/lib/gate.functions";
 
 function NotFoundComponent() {
   return (
@@ -76,6 +78,12 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
+  beforeLoad: async ({ location }) => {
+    const path = location.pathname;
+    if (path === "/greitai" || path.startsWith("/misko-skydas")) return;
+    const { unlocked } = await getGateStatus();
+    if (!unlocked) throw redirect({ to: "/greitai" });
+  },
   head: () => ({
     meta: [
       { charSet: "utf-8" },

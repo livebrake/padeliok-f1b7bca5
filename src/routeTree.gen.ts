@@ -10,6 +10,7 @@
 
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
+import { Route as GreitaiRouteImport } from './routes/greitai'
 import { Route as PaslauguTeikimoSutartisRouteImport } from './routes/paslaugu-teikimo-sutartis'
 import { Route as PrivatumoTaisyklesRouteImport } from './routes/privatumo-taisykles'
 import { Route as MiskoSkydasIndexRouteImport } from './routes/misko-skydas.index'
@@ -18,6 +19,11 @@ import { Route as MiskoSkydasJungtisRouteImport } from './routes/misko-skydas.ju
 const IndexRoute = IndexRouteImport.update({
   id: '/',
   path: '/',
+  getParentRoute: () => rootRouteImport,
+} as any)
+const GreitaiRoute = GreitaiRouteImport.update({
+  id: '/greitai',
+  path: '/greitai',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaslauguTeikimoSutartisRoute = PaslauguTeikimoSutartisRouteImport.update({
@@ -43,6 +49,7 @@ const MiskoSkydasJungtisRoute = MiskoSkydasJungtisRouteImport.update({
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
+  '/greitai': typeof GreitaiRoute
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
@@ -50,6 +57,7 @@ export interface FileRoutesByFullPath {
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
+  '/greitai': typeof GreitaiRoute
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
@@ -58,6 +66,7 @@ export interface FileRoutesByTo {
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
+  '/greitai': typeof GreitaiRoute
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
@@ -67,6 +76,7 @@ export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
+    | '/greitai'
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
@@ -74,6 +84,7 @@ export interface FileRouteTypes {
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
+    | '/greitai'
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
@@ -81,6 +92,7 @@ export interface FileRouteTypes {
   id:
     | '__root__'
     | '/'
+    | '/greitai'
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
@@ -89,6 +101,7 @@ export interface FileRouteTypes {
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
+  GreitaiRoute: typeof GreitaiRoute
   PaslauguTeikimoSutartisRoute: typeof PaslauguTeikimoSutartisRoute
   PrivatumoTaisyklesRoute: typeof PrivatumoTaisyklesRoute
   MiskoSkydasJungtisRoute: typeof MiskoSkydasJungtisRoute
@@ -102,6 +115,13 @@ declare module '@tanstack/react-router' {
       path: '/'
       fullPath: '/'
       preLoaderRoute: typeof IndexRouteImport
+      parentRoute: typeof rootRouteImport
+    }
+    '/greitai': {
+      id: '/greitai'
+      path: '/greitai'
+      fullPath: '/greitai'
+      preLoaderRoute: typeof GreitaiRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/paslaugu-teikimo-sutartis': {
@@ -137,6 +157,7 @@ declare module '@tanstack/react-router' {
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
+  GreitaiRoute: GreitaiRoute,
   PaslauguTeikimoSutartisRoute: PaslauguTeikimoSutartisRoute,
   PrivatumoTaisyklesRoute: PrivatumoTaisyklesRoute,
   MiskoSkydasJungtisRoute: MiskoSkydasJungtisRoute,
