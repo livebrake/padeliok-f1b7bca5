@@ -156,7 +156,7 @@ function Index() {
               aria-disabled="true"
               className="inline-flex cursor-not-allowed items-center gap-2 rounded-full border border-border/50 bg-muted/50 px-3 py-1 font-mono text-xs text-muted-foreground"
             >
-              <MapPin className="h-3 w-3" /> Vilnius · Klaipėda · Šiauliai
+              <MapPin className="h-3 w-3" /> Vilnius · Klaipėda · Šiauliai (jau greitai)
             </p>
           </div>
 
