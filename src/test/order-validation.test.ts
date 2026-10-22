@@ -42,3 +42,17 @@ describe("Optional company fields", () => {
     expect(validateCheckout(person, [])["files"]).toBeTruthy();
   });
 });
+describe("File limits", () => {
+  it("allows at most two documents", () => {
+    expect(validateCheckout(person, [{ name: "a.pdf", size: 1 }, { name: "b.pdf", size: 1 }])).toEqual({});
+    expect(
+      validateCheckout(person, [{ name: "a.pdf", size: 1 }, { name: "b.pdf", size: 1 }, { name: "c.pdf", size: 1 }])["files"],
+    ).toBe("Galima prisegti ne daugiau kaip 2 failus.");
+  });
+  it("rejects files over 20 MB with a clear message", () => {
+    expect(validateCheckout(person, [{ name: "a.pdf", size: 20 * 1024 * 1024 }])).toEqual({});
+    expect(validateCheckout(person, [{ name: "a.pdf", size: 20 * 1024 * 1024 + 1 }])["files"]).toBe(
+      "Failas per didelis. Maksimalus leistinas vieno failo dydis yra 20 MB.",
+    );
+  });
+});
