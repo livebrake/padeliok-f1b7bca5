@@ -363,6 +363,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
   const [paying, setPaying] = useState(false);
+  const [phase, setPhase] = useState<"upload" | "submit">("submit");
   const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
   const [noVat, setNoVat] = useState(false);
   const [agreement, setAgreement] = useState(false);
@@ -399,16 +400,46 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       return;
     }
     setPaying(true);
-    fd.set("agreement", agreement ? "1" : "0");
-    fd.set("plan", plan.id);
-    fd.set("clientType", clientType);
-    fd.set("noVat", noVat ? "1" : "0");
-    fd.set("phone", normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""));
-    all.forEach((f) => fd.append("files", f));
+    setPhase("upload");
     try {
-      const res = await submitOrder({ data: fd });
+      // Files go straight from the browser to storage — only their paths are
+      // sent to the server afterwards, so large attachments never hit the
+      // serverless request body limit.
+      const paths: string[] = [];
+      for (const file of all) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+        const path = `incoming/${crypto.randomUUID().slice(0, 8)}-${safe}`;
+        const { error } = await supabase.storage.from("order-documents").upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+        if (error) {
+          toast.error(`Nepavyko įkelti failo „${file.name}“: ${error.message}`);
+          setPaying(false);
+          return;
+        }
+        paths.push(path);
+      }
+      setPhase("submit");
+      const res = await submitOrder({
+        data: {
+          plan: plan.id,
+          clientType,
+          fullName: String(fd.get("fullName") ?? ""),
+          email: String(fd.get("email") ?? ""),
+          phone: normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""),
+          projectGoal: String(fd.get("projectGoal") ?? ""),
+          komentaras: String(fd.get("komentaras") ?? ""),
+          companyName: String(fd.get("companyName") ?? ""),
+          companyCode: String(fd.get("companyCode") ?? ""),
+          companyAddress: String(fd.get("companyAddress") ?? ""),
+          vatCode: String(fd.get("vatCode") ?? ""),
+          noVat,
+          agreement: "1",
+          filePaths: paths,
+        },
+      });
       if (!res.ok) {
-        toast.error(MSG[res.code]);
+        toast.error(res.message);
         setPaying(false);
         return;
       }
@@ -419,8 +450,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       setErrors({});
       toast.success("Jūsų užsakymas sėkmingai gautas! Susisieksime su jumis artimiausiu metu.");
       onPaid(res.orderNumber);
-    } catch {
-      toast.error(MSG.network);
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
+      toast.error(`Tinklo klaida${detail}. Patikrinkite interneto ryšį ir bandykite vėl.`);
       setPaying(false);
     }
   };
