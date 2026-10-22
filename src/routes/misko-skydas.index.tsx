@@ -243,7 +243,7 @@ function Dashboard() {
           </Tabs>
           <div className="relative md:w-80">
             <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <Input className="pl-9" placeholder="Ieškoti: vardas, el. paštas, Nr." value={q} onChange={(e) => setQ(e.target.value)} />
+            <Input className="pl-9" placeholder="Ieškoti: Nr. PAD-1004, vardas, el. paštas" value={q} onChange={(e) => setQ(e.target.value)} />
           </div>
         </div>
 
