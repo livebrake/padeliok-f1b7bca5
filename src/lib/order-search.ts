@@ -13,7 +13,9 @@ export function compactToken(value: string): string {
 }
 
 export function digitsOnly(value: string): string {
-  return value.replace(/\D/g, "").replace(/^0+/, "");
+  const digits = value.replace(/\D/g, "");
+  const trimmed = digits.replace(/^0+/, "");
+  return trimmed.length > 0 ? trimmed : digits;
 }
 
 function digitsMatch(hay: string | null | undefined, query: string, min = 3): boolean {

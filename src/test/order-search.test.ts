@@ -26,6 +26,7 @@ describe("Admin order search", () => {
     expect(matchesOrderQuery("jonas@example.lt", order)).toBe(true);
     expect(matchesOrderQuery("060000000", order)).toBe(true);
     expect(matchesOrderQuery("+370 600 00000", order)).toBe(true);
+    expect(matchesOrderQuery("000000", order)).toBe(true);
     expect(matchesOrderQuery("Petraitis", order)).toBe(false);
   });
 
