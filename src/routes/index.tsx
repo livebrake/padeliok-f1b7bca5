@@ -161,8 +161,7 @@ function Index() {
           </div>
 
           <h1 className="max-w-4xl text-4xl font-bold leading-tight md:text-6xl">
-            Prieš pirkdami sklypą – sužinokite, ką jame{" "}
-            <span className="text-primary">iš tiesų</span> galite statyti.
+            Prieš pirkdami sklypą – sužinokite, ką jame <span className="text-primary">iš tiesų</span> galite statyti.
           </h1>
           <p className="mt-6 max-w-2xl text-lg text-muted-foreground">
             Išvenkite brangių klaidų. Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių
@@ -368,14 +367,20 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const all = [...rc, ...ribos];
   const total = all.reduce((s, f) => s + f.size, 0);
 
-  const canSubmit = Object.keys(validateCheckout({ ...values, clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" }, all)).length === 0;
+  const canSubmit =
+    Object.keys(
+      validateCheckout({ ...values, clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" }, all),
+    ).length === 0;
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     if (paying) return;
     const form = e.currentTarget;
     const fd = new FormData(form);
-    const errs = validateCheckout({ ...Object.fromEntries(fd), clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" }, all);
+    const errs = validateCheckout(
+      { ...Object.fromEntries(fd), clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" },
+      all,
+    );
     setErrors(errs);
     if (Object.keys(errs).length) return;
     setPaying(true);
@@ -434,7 +439,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     req = true,
   ) => (
     <label className="block text-sm">
-      <span className="font-medium">{label} {req ? <span className="text-destructive">*</span> : null}</span>
+      <span className="font-medium">
+        {label} {req ? <span className="text-destructive">*</span> : null}
+      </span>
       <input
         name={name}
         required={req}
@@ -475,7 +482,12 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   };
 
   return (
-    <form onSubmit={submit} onChange={(e) => setValues(Object.fromEntries(new FormData(e.currentTarget)))} noValidate className="grid md:grid-cols-[1fr_300px]">
+    <form
+      onSubmit={submit}
+      onChange={(e) => setValues(Object.fromEntries(new FormData(e.currentTarget)))}
+      noValidate
+      className="grid md:grid-cols-[1fr_300px]"
+    >
       <div className="space-y-5 p-6 md:p-8">
         <h2 className="text-2xl font-bold">Krepšelis</h2>
         <div className="flex flex-wrap items-center gap-2">
@@ -575,26 +587,17 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                 )
               : field("fullName", "Vardas ir pavardė", "text", "Jonas Jonaitis")}
           </div>
-          {field(
-            "email",
-            "El. pašto adresas",
-            "email",
-            "vardas@pastas.lt",
-          )}
+          {field("email", "El. pašto adresas", "email", "vardas@pastas.lt")}
           {field("phone", "Telefono numeris", "tel", "+370 600 00000", "Pvz.: +370 600 00000 arba 0 600 00000")}
         </div>
         <div className="block text-sm">
           <span className="font-medium">
             Planuoju <span className="text-destructive">*</span>
           </span>
-          <div
-            role="radiogroup"
-            aria-label="Planuoju"
-            className="mt-2 flex flex-wrap gap-2"
-          >
+          <div role="radiogroup" aria-label="Planuoju" className="mt-2 flex flex-wrap gap-2">
             {[
               "Keisti sklypo paskirtį",
-              "Statyti vienbutį / dvibutį",
+              "Statyti vienbutį/dvibutį",
               "Statyti daugiabutį",
               "Statyti komercines patalpas",
               "Kita",
@@ -648,7 +651,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             </span>
           )}
         </label>
-        <div className="text-sm font-medium">Užsakymo dokumentai <span className="text-destructive">*</span></div>
+        <div className="text-sm font-medium">
+          Užsakymo dokumentai <span className="text-destructive">*</span>
+        </div>
         <div
           className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}
         >
@@ -694,32 +699,80 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         </div>
         <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
         <div className="mt-auto flex items-start gap-2 text-sm">
-          <Checkbox id="order-agreement" name="agreement" value="1" required checked={agreement} disabled={paying}
-            onCheckedChange={(checked) => { setAgreement(checked === true); clear("agreement"); }} className="mt-0.5" />
+          <Checkbox
+            id="order-agreement"
+            name="agreement"
+            value="1"
+            required
+            checked={agreement}
+            disabled={paying}
+            onCheckedChange={(checked) => {
+              setAgreement(checked === true);
+              clear("agreement");
+            }}
+            className="mt-0.5"
+          />
           <label htmlFor="order-agreement" className="leading-relaxed">
-            Sutinku su <button type="button"
-              className="text-primary underline underline-offset-2" onClick={(e) => { e.preventDefault(); e.stopPropagation(); setTermsOpen(true); }}>Paslaugų teikimo sutartimi</button> <span className="text-destructive">*</span>
+            Sutinku su{" "}
+            <button
+              type="button"
+              className="text-primary underline underline-offset-2"
+              onClick={(e) => {
+                e.preventDefault();
+                e.stopPropagation();
+                setTermsOpen(true);
+              }}
+            >
+              Paslaugų teikimo sutartimi
+            </button>{" "}
+            <span className="text-destructive">*</span>
           </label>
         </div>
         <Dialog open={termsOpen} onOpenChange={setTermsOpen}>
           <DialogContent className="max-h-[85vh] max-w-2xl overflow-y-auto">
-            <DialogHeader><DialogTitle>Paslaugų teikimo taisyklės ir sąlygos</DialogTitle></DialogHeader>
+            <DialogHeader>
+              <DialogTitle>Paslaugų teikimo taisyklės ir sąlygos</DialogTitle>
+            </DialogHeader>
             <div className="space-y-5 text-sm">
               {serviceTermsSections.map((sec) => (
                 <section key={sec.title}>
                   <h4 className="font-semibold">{sec.title}</h4>
-                  {sec.paragraphs?.map((p) => <p key={p} className="mt-2 leading-relaxed text-muted-foreground">{p}</p>)}
+                  {sec.paragraphs?.map((p) => (
+                    <p key={p} className="mt-2 leading-relaxed text-muted-foreground">
+                      {p}
+                    </p>
+                  ))}
                 </section>
               ))}
             </div>
             <div className="mt-6 flex flex-col gap-2 sm:flex-row sm:justify-end">
-              <Btn type="button" variant="outline" onClick={() => setTermsOpen(false)}>Nesutinku</Btn>
-              <Btn type="button" onClick={() => { setAgreement(true); clear("agreement"); setTermsOpen(false); }}>Sutinku</Btn>
+              <Btn type="button" variant="outline" onClick={() => setTermsOpen(false)}>
+                Nesutinku
+              </Btn>
+              <Btn
+                type="button"
+                onClick={() => {
+                  setAgreement(true);
+                  clear("agreement");
+                  setTermsOpen(false);
+                }}
+              >
+                Sutinku
+              </Btn>
             </div>
           </DialogContent>
         </Dialog>
-        {errors["agreement"] && <p role="alert" className="text-xs text-destructive">{errors["agreement"]}</p>}
-        <Btn type="submit" disabled={paying || !canSubmit} aria-busy={paying} className="w-full py-3 disabled:opacity-70">
+        {errors["agreement"] && (
+          <p role="alert" className="text-xs text-destructive">
+            {errors["agreement"]}
+          </p>
+        )}
+        <Btn
+          type="submit"
+          disabled={paying || !canSubmit}
+          aria-busy={paying}
+          className="w-full py-3 disabled:opacity-70"
+        >
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
