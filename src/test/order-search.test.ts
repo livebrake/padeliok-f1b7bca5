@@ -10,14 +10,14 @@ const order = {
 };
 
 describe("Admin order search", () => {
-  it.each(["PAD-1004", "#PAD-1004", "pad-1004", "PAD 1004", "pad1004", "PAD_1004", "1004", "01004", "pad-10", "100"])(
+  it.each(["PAD-1004", "#PAD-1004", "pad-1004", "PAD 1004", "pad1004", "PAD_1004", "1004", "01004", "pad-10", "100", "PB-1004"])(
     "finds the order by %s",
     (query) => {
       expect(matchesOrderQuery(query, order)).toBe(true);
     },
   );
 
-  it.each(["1005", "PAD-2004", "PB-1004", "zzz"])("does not find the order by %s", (query) => {
+  it.each(["1005", "PAD-2004", "PB-2004", "zzz"])("does not find the order by %s", (query) => {
     expect(matchesOrderQuery(query, order)).toBe(false);
   });
 
