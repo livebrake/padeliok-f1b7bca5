@@ -1,6 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
-import { validateCheckout } from "@/lib/order-validation";
+import { validateCheckout, normalizePhone, FILE_EXT } from "@/lib/order-validation";
 
 const PRICES: Record<string, { name: string; price: number }> = {
   bazinis: { name: "Bazinis", price: 49 },
@@ -10,13 +10,6 @@ const PRICES: Record<string, { name: string; price: number }> = {
 
 const sanitize = (s: string) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
 
-const normalizePhone = (raw: string): string | null => {
-  const digits = raw.replace(/\D/g, "");
-  if (digits.startsWith("8")) return null; // senasis „8“ prefiksas nebenaudojamas
-  const national = digits.startsWith("370") ? digits.slice(3) : digits.startsWith("0") ? digits.slice(1) : digits;
-  return /^6\d{7}$/.test(national) ? `+370${national}` : null;
-};
-
 const PROJECT_GOALS = [
   "Keisti sklypo paskirtį",
   "Statyti vienbutį / dvibutį",
@@ -25,81 +18,96 @@ const PROJECT_GOALS = [
   "Kita",
 ] as const;
 
-const fields = z.object({
+// Files are uploaded straight from the browser into the storage `incoming/` folder;
+// only their paths travel in this payload, so large attachments never hit the
+// serverless request body limit.
+const payload = z.object({
   plan: z.string().max(50),
-  fullName: z.string().trim().max(120).refine((v) => !/\d/.test(v)),
-  email: z.string().trim().email().max(255),
-  phone: z.string().trim().min(1).max(30).refine((v) => normalizePhone(v) !== null),
-  projectGoal: z.enum(PROJECT_GOALS, { message: "Pasirinkite, ką planuojate." }),
-  komentaras: z.string().trim().min(1, "Aprašymas būtinas.").max(1000),
+  clientType: z.enum(["fizinis", "juridinis"]),
+  fullName: z.string().trim().max(120),
+  email: z.string().trim().max(255),
+  phone: z.string().trim().max(30),
+  projectGoal: z.string().max(120),
+  komentaras: z.string().trim().max(1000),
+  companyName: z.string().trim().max(200).default(""),
+  companyCode: z.string().trim().max(20).default(""),
+  companyAddress: z.string().trim().max(300).default(""),
+  vatCode: z.string().trim().max(20).default(""),
+  noVat: z.boolean().default(false),
+  agreement: z.string().max(5).default("0"),
+  filePaths: z.array(z.string().max(300)).max(5).default([]),
 });
-
-const MAX_FILE = 20 * 1024 * 1024;
-const EXT = /\.(pdf|png|jpe?g|docx)$/i;
 
 export type SubmitResult =
   | { ok: true; orderNumber: string }
-  | { ok: false; code: "validation" | "storage" | "database" };
+  | { ok: false; code: "validation" | "storage" | "database"; message: string };
+
+const invalid = (message: string): SubmitResult => ({ ok: false, code: "validation", message });
 
 export const submitOrder = createServerFn({ method: "POST" })
-  .inputValidator((data) => {
-    if (!(data instanceof FormData)) throw new Error("Invalid form data");
-    return data;
-  })
+  .inputValidator((data) => data)
   .handler(async ({ data }): Promise<SubmitResult> => {
-    const filesToValidate = data.getAll("files").filter((value): value is File => value instanceof File);
-    if (Object.keys(validateCheckout(Object.fromEntries(data), filesToValidate)).length)
-      return { ok: false, code: "validation" };
-    const parsed = fields.safeParse({
-      plan: data.get("plan"), fullName: data.get("fullName"), email: data.get("email"),
-      phone: data.get("phone"), projectGoal: data.get("projectGoal"),
-      komentaras: String(data.get("komentaras") ?? "").trim(),
-    });
-    if (!parsed.success) return { ok: false, code: "validation" };
-    const f = parsed.data;
-    const isCo = data.get("clientType") === "juridinis";
-    if (!isCo && !f.fullName) return { ok: false, code: "validation" };
-    if (!isCo && f.fullName.split(/\s+/).length < 2) return { ok: false, code: "validation" };
-    const noVat = data.get("noVat") === "1";
-    const str = (k: string) => sanitize(String(data.get(k) ?? "")).replace(/\s+/g, " ");
+    const parsed = payload.safeParse(data);
+    if (!parsed.success) return invalid("Neteisingi užsakymo duomenys.");
+    const v = parsed.data;
+    const isCo = v.clientType === "juridinis";
+
+    // Shared eligibility rules — the same browser-safe module the form uses.
+    const fileMeta = v.filePaths.map((p) => ({ name: p.split("/").pop() ?? p, size: 1 }));
+    const errs = validateCheckout({ ...v, noVat: v.noVat ? "1" : "0" }, fileMeta);
+    if (Object.keys(errs).length) return invalid(Object.values(errs)[0]!);
+
+    if (!isCo && v.fullName.split(/\s+/).length < 2)
+      return invalid("Prašome įrašyti ir pavardę (mažiausiai du žodžius).");
+    const phone = normalizePhone(v.phone);
+    if (!phone) return invalid("Įveskite teisingą telefono numerį (pvz., +370 600 00000 arba 0 600 00000).");
+    if (!PROJECT_GOALS.includes(v.projectGoal as (typeof PROJECT_GOALS)[number]))
+      return invalid("Pasirinkite, ką planuojate.");
+
     let company: { company_name: string; company_code: string; company_address: string | null; vat_code: string } | null = null;
     if (isCo) {
-      const name = str("companyName").slice(0, 200);
-      const code = str("companyCode").replace(/\s/g, "");
-      const addr = str("companyAddress").slice(0, 300);
-      const vat = str("vatCode").replace(/\s/g, "").toUpperCase();
-      if (name.length < 2 || !/^\d{9}$/.test(code) || (addr && (!/\d/.test(addr) || addr.length < 5))) return { ok: false, code: "validation" };
-      if (!noVat && !/^LT(\d{9}|\d{12})$/.test(vat)) return { ok: false, code: "validation" };
-      company = { company_name: name, company_code: code, company_address: addr || null, vat_code: noVat ? "Ne PVM mokėtojas" : vat };
+      const name = sanitize(v.companyName).replace(/\s+/g, " ").slice(0, 200);
+      const code = v.companyCode.replace(/\s/g, "");
+      const addr = sanitize(v.companyAddress).replace(/\s+/g, " ").slice(0, 300);
+      const vat = v.vatCode.replace(/\s/g, "").toUpperCase();
+      if (name.length < 2 || !/^\d{9}$/.test(code))
+        return invalid("Patikrinkite įmonės pavadinimą ir įmonės kodą (9 skaitmenys).");
+      if (addr && (!/\d/.test(addr) || addr.length < 5))
+        return invalid("Nurodykite gatvę, namo numerį ir miestą (pvz., Gedimino pr. 1, Vilnius).");
+      if (!v.noVat && !/^LT(\d{9}|\d{12})$/.test(vat))
+        return invalid("PVM kodas turi prasidėti „LT“ ir turėti 9 arba 12 skaitmenų (pvz., LT123456789).");
+      company = { company_name: name, company_code: code, company_address: addr || null, vat_code: v.noVat ? "Ne PVM mokėtojas" : vat };
     }
-    const plan = PRICES[f.plan.toLowerCase()];
-    if (!plan) return { ok: false, code: "validation" };
-    const comment = sanitize(f.komentaras);
-    if (!comment) return { ok: false, code: "validation" };
-    const files = data.getAll("files").filter((x): x is File => x instanceof File && x.size > 0);
-    if (!files.length || files.length > 20 || files.some((x) => x.size > MAX_FILE || !EXT.test(x.name)))
-      return { ok: false, code: "validation" };
+    const plan = PRICES[v.plan.toLowerCase()];
+    if (!plan) return invalid("Nepasirinktas planas.");
+    const comment = sanitize(v.komentaras);
+    if (!comment) return invalid("Aprašykite savo užduotį – šis laukas būtinas.");
+
+    // Only paths the browser uploaded into incoming/ are accepted; the move below
+    // also proves each file actually exists in storage.
+    if (v.filePaths.some((p) => !/^incoming\/[a-zA-Z0-9._-]+$/.test(p) || !FILE_EXT.test(p)))
+      return invalid("Neteisinga įkelto failo nuoroda. Įkelkite failus iš naujo.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: seq } = await supabaseAdmin.rpc("next_order_number");
     const orderNumber = seq ?? `PAD-${Date.now().toString().slice(-6)}`;
-    const paths: string[] = [];
-    for (const file of files) {
-      const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
-      const path = `${orderNumber}/${crypto.randomUUID().slice(0, 8)}-${safe}`;
-      const { error } = await supabaseAdmin.storage.from("order-documents").upload(path, file, {
-        contentType: file.type || "application/octet-stream",
-      });
-      if (error) { console.error("storage upload failed", error); return { ok: false, code: "storage" }; }
-      paths.push(path);
+
+    const finalPaths: string[] = [];
+    for (const p of v.filePaths) {
+      const dest = `${orderNumber}/${p.slice("incoming/".length)}`;
+      const { error } = await supabaseAdmin.storage.from("order-documents").move(p, dest);
+      if (error) {
+        console.error("storage move failed", error);
+        return { ok: false, code: "storage", message: `Nepavyko apdoroti įkelto failo: ${error.message}` };
+      }
+      finalPaths.push(dest);
     }
-    const fullName = sanitize(f.fullName);
-    const phone = normalizePhone(f.phone);
-    if (!phone) return { ok: false, code: "validation" };
+
+    const fullName = sanitize(v.fullName);
     const { error } = await supabaseAdmin.from("orders").insert({
       order_number: orderNumber,
       full_name: fullName,
-      email: f.email,
+      email: v.email,
       phone,
       plan_name: plan.name,
       price: plan.price,
@@ -111,21 +119,24 @@ export const submitOrder = createServerFn({ method: "POST" })
       company_address: company?.company_address ?? null,
       vat_code: company?.vat_code ?? null,
       contact_person: isCo ? fullName || null : null,
-      project_goal: f.projectGoal,
+      project_goal: v.projectGoal,
       comment,
-      file_paths: paths,
+      file_paths: finalPaths,
     });
-    if (error) { console.error("db insert failed", error); return { ok: false, code: "database" }; }
+    if (error) {
+      console.error("db insert failed", error);
+      return { ok: false, code: "database", message: `Nepavyko išsaugoti užsakymo: ${error.message}` };
+    }
 
     const fileLinks: { name: string; url: string }[] = [];
-    for (const p of paths) {
+    for (const p of finalPaths) {
       const { data: s } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(p, 60 * 60 * 24 * 7);
       if (s?.signedUrl) fileLinks.push({ name: p.split("/").pop()!.slice(9), url: s.signedUrl });
     }
     const { sendOrderEmails } = await import("@/lib/order-emails.server");
     await sendOrderEmails({
-      orderNumber, isCompany: isCo, fullName, email: f.email, phone,
-      planName: plan.name, price: plan.price, projectGoal: f.projectGoal, comment, company, fileLinks,
+      orderNumber, isCompany: isCo, fullName, email: v.email, phone,
+      planName: plan.name, price: plan.price, projectGoal: v.projectGoal, comment, company, fileLinks,
     });
     return { ok: true, orderNumber };
   });

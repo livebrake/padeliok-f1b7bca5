@@ -3,8 +3,19 @@ import { useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { serviceTermsSections } from "@/lib/service-terms";
-import { normalizePhone, schema, companySchema, validateCheckout } from "@/lib/order-validation";
+import {
+  normalizePhone,
+  schema,
+  companySchema,
+  validateCheckout,
+  MAX_FILE_SIZE,
+  MAX_FILES,
+  FILE_TYPE_MESSAGE,
+  FILE_SIZE_MESSAGE,
+  FILE_COUNT_MESSAGE,
+} from "@/lib/order-validation";
 export { normalizePhone } from "@/lib/order-validation";
+import { supabase } from "@/integrations/supabase/client";
 import {
   Check,
   Clock,
@@ -346,18 +357,13 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
 
 type CompanyKey = keyof typeof companySchema.shape;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
-const MSG = {
-  storage: "Nepavyko įkelti failo. Patikrinkite failą ir bandykite dar kartą.",
-  database: "Nepavyko išsaugoti užsakymo duomenų bazėje. Bandykite dar kartą.",
-  validation: "Patikrinkite formos laukus ir bandykite dar kartą.",
-  network: "Tinklo klaida. Patikrinkite interneto ryšį ir bandykite vėl.",
-};
 
 function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
   const [paying, setPaying] = useState(false);
+  const [phase, setPhase] = useState<"upload" | "submit">("submit");
   const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
   const [noVat, setNoVat] = useState(false);
   const [agreement, setAgreement] = useState(false);
@@ -394,16 +400,46 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       return;
     }
     setPaying(true);
-    fd.set("agreement", agreement ? "1" : "0");
-    fd.set("plan", plan.id);
-    fd.set("clientType", clientType);
-    fd.set("noVat", noVat ? "1" : "0");
-    fd.set("phone", normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""));
-    all.forEach((f) => fd.append("files", f));
+    setPhase("upload");
     try {
-      const res = await submitOrder({ data: fd });
+      // Files go straight from the browser to storage — only their paths are
+      // sent to the server afterwards, so large attachments never hit the
+      // serverless request body limit.
+      const paths: string[] = [];
+      for (const file of all) {
+        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+        const path = `incoming/${crypto.randomUUID().slice(0, 8)}-${safe}`;
+        const { error } = await supabase.storage.from("order-documents").upload(path, file, {
+          contentType: file.type || "application/octet-stream",
+        });
+        if (error) {
+          toast.error(`Nepavyko įkelti failo „${file.name}“: ${error.message}`);
+          setPaying(false);
+          return;
+        }
+        paths.push(path);
+      }
+      setPhase("submit");
+      const res = await submitOrder({
+        data: {
+          plan: plan.id,
+          clientType,
+          fullName: String(fd.get("fullName") ?? ""),
+          email: String(fd.get("email") ?? ""),
+          phone: normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""),
+          projectGoal: String(fd.get("projectGoal") ?? ""),
+          komentaras: String(fd.get("komentaras") ?? ""),
+          companyName: String(fd.get("companyName") ?? ""),
+          companyCode: String(fd.get("companyCode") ?? ""),
+          companyAddress: String(fd.get("companyAddress") ?? ""),
+          vatCode: String(fd.get("vatCode") ?? ""),
+          noVat,
+          agreement: "1",
+          filePaths: paths,
+        },
+      });
       if (!res.ok) {
-        toast.error(MSG[res.code]);
+        toast.error(res.message);
         setPaying(false);
         return;
       }
@@ -414,8 +450,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       setErrors({});
       toast.success("Jūsų užsakymas sėkmingai gautas! Susisieksime su jumis artimiausiu metu.");
       onPaid(res.orderNumber);
-    } catch {
-      toast.error(MSG.network);
+    } catch (err) {
+      const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
+      toast.error(`Tinklo klaida${detail}. Patikrinkite interneto ryšį ir bandykite vėl.`);
       setPaying(false);
     }
   };
@@ -684,6 +721,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               setRc(f);
               clear("files");
             }}
+            room={MAX_FILES - all.length}
+            onError={(m) => setErrors((p) => ({ ...p, files: m }))}
           />
           <Drop
             label="Žemės sklypo ribų planas"
@@ -694,6 +733,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               setRibos(f);
               clear("files");
             }}
+            room={MAX_FILES - all.length}
+            onError={(m) => setErrors((p) => ({ ...p, files: m }))}
           />
         </div>
         {errors["files"] && (
@@ -702,7 +743,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          Maksimalus vieno failo dydis – 20 MB. Įkelta: {(total / 1024 / 1024).toFixed(1)} MB
+          Iki 2 failų, iki 20 MB kiekvienas. Įkelta: {(total / 1024 / 1024).toFixed(1)} MB
         </p>
       </div>
       <aside className="flex flex-col gap-4 rounded-b-lg border-t border-border bg-muted/60 p-6 md:rounded-r-lg md:rounded-bl-none md:border-l md:border-t-0 md:p-8">
@@ -791,7 +832,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Siunčiama…
+              {phase === "upload" ? "Įkeliami failai…" : "Siunčiama…"}
             </span>
           ) : (
             "Pateikti užsakymą"
@@ -808,19 +849,28 @@ function Drop({
   hint,
   files,
   setFiles,
+  room,
+  onError,
 }: {
   label: string;
   accept: string;
   hint: string;
   files: File[];
   setFiles: (f: File[]) => void;
+  room: number;
+  onError: (message: string) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const exts = accept.split(",");
   const add = (list: FileList | null) => {
     if (!list) return;
-    setFiles([...files, ...Array.from(list).filter((f) => exts.some((x) => f.name.toLowerCase().endsWith(x)))]);
+    const picked = Array.from(list);
+    if (picked.some((f) => !exts.some((x) => f.name.toLowerCase().endsWith(x)))) return onError(FILE_TYPE_MESSAGE);
+    if (picked.some((f) => f.size > MAX_FILE_SIZE)) return onError(FILE_SIZE_MESSAGE);
+    if (picked.some((f) => f.size <= 0)) return onError("Failas turi būti netuščias.");
+    if (picked.length > room) return onError(FILE_COUNT_MESSAGE);
+    setFiles([...files, ...picked]);
   };
   return (
     <div>
