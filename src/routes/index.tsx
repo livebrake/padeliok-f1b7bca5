@@ -50,7 +50,7 @@ const PLANS: Plan[] = [
       "Pagrindiniai sklypo rodikliai",
       "Užstatymo zonų patikrinimas",
       "Ribojimų ir apsaugos zonų patikra",
-      "Profesionalo išvada (PDF)",
+      "Specialisto išvada (PDF)",
     ],
   },
   {
@@ -171,7 +171,7 @@ function Index() {
             {[
               [MapPin, "Rizikų ir statybos ribojimų įvertinimas"],
               [Clock, "Atsakymas per 48–72 val."],
-              [FileText, "Aiški profesionalo išvada (PDF)"],
+              [FileText, "Aiški specialisto išvada (PDF)"],
             ].map(([I, t]) => {
               const Icon = I as typeof MapPin;
               return (
@@ -238,7 +238,7 @@ function Index() {
         <div className="mx-auto grid max-w-6xl gap-8 px-5 py-16 md:grid-cols-3">
           {[
             ["1. Užsakote", "Pasirenkate planą ir įkeliate Registrų centro išrašą bei sklypo ribų planą."],
-            ["2. Profesionalai analizuoja", "Tikrinami teritorijų planavimo dokumentai, apribojimai ir komunikacijos."],
+            ["2. Specialistai analizuoja", "Tikrinami teritorijų planavimo dokumentai, apribojimai ir komunikacijos."],
             ["3. Gaunate išvadą", "Per 48–72 val. el. paštu gaunate aiškią PDF išvadą."],
           ].map(([t, d]) => (
             <div key={t}>
@@ -649,7 +649,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             required
             maxLength={1000}
             rows={4}
-            placeholder="Aprašykite savo viziją, planuojamus statinius ir kitus specifinius klausimus profesionalui..."
+            placeholder="Aprašykite savo viziją, planuojamus statinius ir kitus specifinius klausimus specialistui..."
             aria-invalid={!!errors["komentaras"]}
             aria-describedby={errors["komentaras"] ? "order-error-komentaras" : undefined}
             onChange={(e) => clear("komentaras")}
