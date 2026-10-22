@@ -362,15 +362,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const [noVat, setNoVat] = useState(false);
   const [agreement, setAgreement] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
-  const [values, setValues] = useState<Record<string, unknown>>({});
   const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];
   const total = all.reduce((s, f) => s + f.size, 0);
-
-  const canSubmit =
-    Object.keys(
-      validateCheckout({ ...values, clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" }, all),
-    ).length === 0;
 
   const submit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -382,7 +376,20 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       all,
     );
     setErrors(errs);
-    if (Object.keys(errs).length) return;
+    if (Object.keys(errs).length) {
+      requestAnimationFrame(() => {
+        const firstInvalid = Array.from(form.querySelectorAll<HTMLElement>("[data-validation-field]"))
+          .find((element) => errs[element.dataset["validationField"] ?? ""]);
+        if (!firstInvalid) return;
+        const control = firstInvalid.querySelector<HTMLElement>('input:not([type="file"]), textarea, button, [tabindex]');
+        control?.focus({ preventScroll: true });
+        firstInvalid.scrollIntoView({
+          behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "instant" : "smooth",
+          block: "center",
+        });
+      });
+      return;
+    }
     setPaying(true);
     fd.set("agreement", agreement ? "1" : "0");
     fd.set("plan", plan.id);
@@ -399,7 +406,6 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       }
       form.reset();
       setAgreement(false);
-      setValues({});
       setRc([]);
       setRibos([]);
       setErrors({});
@@ -429,7 +435,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     else clear(name);
   };
   const inputCls = (name: string) =>
-    `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
+    `mt-1 w-full rounded-md border bg-background px-3 py-2 outline-none focus:ring-2 ${errors[name] ? "border-destructive ring-2 ring-destructive focus:ring-destructive" : "border-input focus:ring-ring"}`;
   const field = (
     name: "fullName" | "email" | "phone" | CompanyKey,
     label: string,
@@ -438,7 +444,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
     hint = "",
     req = true,
   ) => (
-    <label className="block text-sm">
+    <label className="block text-sm" data-validation-field={name}>
       <span className="font-medium">
         {label} {req ? <span className="text-destructive">*</span> : null}
       </span>
@@ -450,6 +456,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         inputMode={name === "companyCode" ? "numeric" : undefined}
         placeholder={placeholder}
         aria-invalid={!!errors[name]}
+        aria-describedby={errors[name] ? `order-error-${name}` : undefined}
         onChange={(e) => {
           const el = e.currentTarget;
           if (name === "companyCode") el.value = el.value.replace(/\D/g, "").slice(0, 9);
@@ -464,7 +471,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         className={inputCls(name)}
       />
       {errors[name] ? (
-        <span role="alert" className="mt-1 block text-xs text-destructive">
+        <span id={`order-error-${name}`} role="alert" className="mt-1 block text-xs text-destructive">
           {errors[name]}
         </span>
       ) : (
@@ -484,7 +491,6 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   return (
     <form
       onSubmit={submit}
-      onChange={(e) => setValues(Object.fromEntries(new FormData(e.currentTarget)))}
       noValidate
       className="grid md:grid-cols-[1fr_300px]"
     >
@@ -590,11 +596,11 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           {field("email", "El. pašto adresas", "email", "vardas@pastas.lt")}
           {field("phone", "Telefono numeris", "tel", "+370 600 00000", "Pvz.: +370 600 00000 arba 0 600 00000")}
         </div>
-        <div className="block text-sm">
+        <div className="block text-sm" data-validation-field="projectGoal">
           <span className="font-medium">
             Planuoju <span className="text-destructive">*</span>
           </span>
-          <div role="radiogroup" aria-label="Planuoju" className="mt-2 flex flex-wrap gap-2">
+          <div role="radiogroup" aria-label="Planuoju" aria-invalid={!!errors["projectGoal"]} aria-describedby={errors["projectGoal"] ? "order-error-projectGoal" : undefined} className="mt-2 flex flex-wrap gap-2">
             {[
               "Keisti sklypo paskirtį",
               "Statyti vienbutį/dvibutį",
@@ -606,14 +612,14 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                 <input
                   type="radio"
                   name="projectGoal"
-                  value={g}
+                  value={g === "Statyti vienbutį/dvibutį" ? "Statyti vienbutį / dvibutį" : g}
                   required
                   className="peer sr-only"
                   onChange={() => clear("projectGoal")}
                 />
                 <span
                   className={`inline-flex cursor-pointer items-center rounded-full border px-4 py-1.5 text-sm font-medium transition-colors peer-checked:border-primary peer-checked:bg-primary peer-checked:text-primary-foreground peer-checked:hover:bg-primary peer-focus-visible:ring-2 peer-focus-visible:ring-ring ${
-                    errors["projectGoal"] ? "border-destructive" : "border-border hover:bg-muted"
+                    errors["projectGoal"] ? "border-destructive ring-2 ring-destructive" : "border-border hover:bg-muted"
                   }`}
                 >
                   {g}
@@ -622,12 +628,12 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             ))}
           </div>
           {errors["projectGoal"] && (
-            <span role="alert" className="mt-1 block text-xs text-destructive">
+            <span id="order-error-projectGoal" role="alert" className="mt-1 block text-xs text-destructive">
               {errors["projectGoal"]}
             </span>
           )}
         </div>
-        <label className="block text-sm">
+        <label className="block text-sm" data-validation-field="komentaras">
           <span className="font-medium">
             Trumpas užduoties aprašymas ir lūkesčiai <span className="text-destructive">*</span>
           </span>
@@ -638,11 +644,12 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
             rows={4}
             placeholder="Aprašykite savo viziją, planuojamus statinius ir kitus specifinius klausimus profesionalui..."
             aria-invalid={!!errors["komentaras"]}
+            aria-describedby={errors["komentaras"] ? "order-error-komentaras" : undefined}
             onChange={(e) => clear("komentaras")}
             className={inputCls("komentaras")}
           />
           {errors["komentaras"] ? (
-            <span role="alert" className="mt-1 block text-xs text-destructive">
+            <span id="order-error-komentaras" role="alert" className="mt-1 block text-xs text-destructive">
               {errors["komentaras"]}
             </span>
           ) : (
@@ -655,6 +662,10 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           Užsakymo dokumentai <span className="text-destructive">*</span>
         </div>
         <div
+          data-validation-field="files"
+          tabIndex={-1}
+          aria-invalid={!!errors["files"]}
+          aria-describedby={errors["files"] ? "order-error-files" : undefined}
           className={`grid gap-4 rounded-md sm:grid-cols-2 ${errors["files"] ? "ring-2 ring-destructive ring-offset-2" : ""}`}
         >
           <Drop
@@ -679,7 +690,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           />
         </div>
         {errors["files"] && (
-          <p role="alert" className="text-xs text-destructive">
+          <p id="order-error-files" role="alert" className="text-xs text-destructive">
             {errors["files"]}
           </p>
         )}
@@ -698,7 +709,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           <span>{plan.price} €</span>
         </div>
         <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
-        <div className="mt-auto flex items-start gap-2 text-sm">
+        <div data-validation-field="agreement" className="mt-auto flex items-start gap-2 text-sm">
           <Checkbox
             id="order-agreement"
             name="agreement"
@@ -710,7 +721,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               setAgreement(checked === true);
               clear("agreement");
             }}
-            className="mt-0.5"
+            aria-invalid={!!errors["agreement"]}
+            aria-describedby={errors["agreement"] ? "order-error-agreement" : undefined}
+            className={`mt-0.5 ${errors["agreement"] ? "border-destructive ring-2 ring-destructive" : ""}`}
           />
           <label htmlFor="order-agreement" className="leading-relaxed">
             Sutinku su{" "}
@@ -763,15 +776,14 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           </DialogContent>
         </Dialog>
         {errors["agreement"] && (
-          <p role="alert" className="text-xs text-destructive">
+          <p id="order-error-agreement" role="alert" className="text-xs text-destructive">
             {errors["agreement"]}
           </p>
         )}
         <Btn
           type="submit"
-          disabled={paying || !canSubmit}
           aria-busy={paying}
-          className="w-full py-3 disabled:opacity-70"
+          className="w-full py-3"
         >
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
