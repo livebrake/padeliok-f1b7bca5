@@ -67,6 +67,7 @@ function clientHtml(d: OrderEmailData) {
     <h3 style="margin:24px 0 8px">Kas toliau?</h3>
     <p>Mūsų ekspertai įvertins jūsų sklypą ir susisieks su jumis per 48–72 val.</p>
     <p>Skubiais klausimais rašykite <a href="mailto:${TEAM_EMAIL}">${TEAM_EMAIL}</a> – nurodykite užsakymo numerį.</p>
+    <p style="color:#888;font-size:12px;margin-top:24px;border-top:1px solid #e5e5e5;padding-top:12px">Šis laiškas yra sugeneruotas automatiškai, todėl atsakymai į jį nėra stebimi. Jei turite klausimų ar norite patikslinti užsakymą, prašome kreiptis svetainėje nurodytais kontaktais.</p>
     <p>Pagarbiai,<br>padeliok.lt komanda</p>`);
 }
 
@@ -86,7 +87,7 @@ export async function sendOrderEmails(d: OrderEmailData) {
     console.error("RESEND_API_KEY is not configured – order emails skipped");
     return;
   }
-  const from = process.env["RESEND_FROM"] || `padeliok.lt <${TEAM_EMAIL}>`;
+  const from = process.env["RESEND_FROM"] || "Padeliok <uzsakymai@padeliok.lt>";
   try {
     await Promise.all([
       send(apiKey, from, {
