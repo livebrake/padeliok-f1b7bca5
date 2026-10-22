@@ -111,8 +111,13 @@ export const companySchema = z.object({
       "PVM kodas turi prasidėti „LT“ ir turėti 9 arba 12 skaitmenų (pvz., LT123456789).",
     ),
 });
-const MAX_FILE = 20 * 1024 * 1024;
-const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
+export const MAX_FILE_SIZE = 20 * 1024 * 1024;
+export const MAX_FILES = 2;
+export const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
+export const FILE_REQUIRED_MESSAGE = "Būtina įkelti užsakymo dokumentą/failą.";
+export const FILE_COUNT_MESSAGE = "Galima prisegti ne daugiau kaip 2 failus.";
+export const FILE_TYPE_MESSAGE = "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
+export const FILE_SIZE_MESSAGE = "Failas per didelis. Maksimalus leistinas vieno failo dydis yra 20 MB.";
 
 export const agreementSchema = z.literal("1", { errorMap: () => ({ message: "Būtina sutikti su Paslaugų teikimo sutartimi." }) });
 
@@ -133,9 +138,9 @@ export function validateCheckout(values: Record<string, unknown>, files: { name:
   if (isCompany) collect((values["noVat"] === "1" ? companySchema.omit({ vatCode: true }) : companySchema).safeParse(values));
   if (!agreementSchema.safeParse(values["agreement"]).success)
     errors["agreement"] = "Būtina sutikti su Paslaugų teikimo sutartimi.";
-  if (!files.length) errors["files"] = "Būtina įkelti užsakymo dokumentą/failą.";
-  else if (files.length > 20) errors["files"] = "Galima įkelti daugiausia 20 failų.";
-  else if (files.some((file) => !FILE_EXT.test(file.name))) errors["files"] = "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
-  else if (files.some((file) => file.size <= 0 || file.size > MAX_FILE)) errors["files"] = "Failas turi būti netuščias ir neviršyti 20 MB.";
+  if (!files.length) errors["files"] = FILE_REQUIRED_MESSAGE;
+  else if (files.length > MAX_FILES) errors["files"] = FILE_COUNT_MESSAGE;
+  else if (files.some((file) => !FILE_EXT.test(file.name))) errors["files"] = FILE_TYPE_MESSAGE;
+  else if (files.some((file) => file.size <= 0 || file.size > MAX_FILE_SIZE)) errors["files"] = FILE_SIZE_MESSAGE;
   return errors;
 }
