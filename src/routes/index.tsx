@@ -721,6 +721,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               setRc(f);
               clear("files");
             }}
+            room={MAX_FILES - all.length}
+            onError={(m) => setErrors((p) => ({ ...p, files: m }))}
           />
           <Drop
             label="Žemės sklypo ribų planas"
@@ -731,6 +733,8 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
               setRibos(f);
               clear("files");
             }}
+            room={MAX_FILES - all.length}
+            onError={(m) => setErrors((p) => ({ ...p, files: m }))}
           />
         </div>
         {errors["files"] && (
@@ -739,7 +743,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           </p>
         )}
         <p className="text-xs text-muted-foreground">
-          Maksimalus vieno failo dydis – 20 MB. Įkelta: {(total / 1024 / 1024).toFixed(1)} MB
+          Iki 2 failų, iki 20 MB kiekvienas. Įkelta: {(total / 1024 / 1024).toFixed(1)} MB
         </p>
       </div>
       <aside className="flex flex-col gap-4 rounded-b-lg border-t border-border bg-muted/60 p-6 md:rounded-r-lg md:rounded-bl-none md:border-l md:border-t-0 md:p-8">
@@ -828,7 +832,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Siunčiama…
+              {phase === "upload" ? "Įkeliami failai…" : "Siunčiama…"}
             </span>
           ) : (
             "Pateikti užsakymą"
@@ -845,19 +849,28 @@ function Drop({
   hint,
   files,
   setFiles,
+  room,
+  onError,
 }: {
   label: string;
   accept: string;
   hint: string;
   files: File[];
   setFiles: (f: File[]) => void;
+  room: number;
+  onError: (message: string) => void;
 }) {
   const ref = useRef<HTMLInputElement>(null);
   const [over, setOver] = useState(false);
   const exts = accept.split(",");
   const add = (list: FileList | null) => {
     if (!list) return;
-    setFiles([...files, ...Array.from(list).filter((f) => exts.some((x) => f.name.toLowerCase().endsWith(x)))]);
+    const picked = Array.from(list);
+    if (picked.some((f) => !exts.some((x) => f.name.toLowerCase().endsWith(x)))) return onError(FILE_TYPE_MESSAGE);
+    if (picked.some((f) => f.size > MAX_FILE_SIZE)) return onError(FILE_SIZE_MESSAGE);
+    if (picked.some((f) => f.size <= 0)) return onError("Failas turi būti netuščias.");
+    if (picked.length > room) return onError(FILE_COUNT_MESSAGE);
+    setFiles([...files, ...picked]);
   };
   return (
     <div>
