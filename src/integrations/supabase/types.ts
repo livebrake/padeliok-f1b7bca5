@@ -30,10 +30,7 @@ export type Database = {
           full_name: string | null
           id: string
           last_name: string
-          montonio_checkout_url: string | null
-          montonio_uuid: string | null
           order_number: string
-          payment_email_sent_at: string | null
           payment_status: string
           phone: string
           plan_id: string
@@ -58,10 +55,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_name?: string
-          montonio_checkout_url?: string | null
-          montonio_uuid?: string | null
           order_number: string
-          payment_email_sent_at?: string | null
           payment_status?: string
           phone: string
           plan_id?: string
@@ -86,10 +80,7 @@ export type Database = {
           full_name?: string | null
           id?: string
           last_name?: string
-          montonio_checkout_url?: string | null
-          montonio_uuid?: string | null
           order_number?: string
-          payment_email_sent_at?: string | null
           payment_status?: string
           phone?: string
           plan_id?: string
