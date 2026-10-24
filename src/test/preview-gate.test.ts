@@ -49,7 +49,7 @@ describe("Preview password gate in production mode", () => {
   it.each(publicHosts)("keeps published/untrusted host %s locked", async (host) => {
     vi.stubEnv("NODE_ENV", "production");
     mocks.getRequest.mockReturnValue(new Request(`https://${host}/`, {
-      headers: { "X-Forwarded-Host": previews[0] },
+      headers: { "X-Forwarded-Host": "id-preview--520e88e5-eb85-446d-a690-6d6ae9612c69.lovable.app" },
     }));
     mocks.useSession.mockResolvedValue({ data: {} });
     expect(await getGateStatus()).toEqual({ unlocked: false, preview: false });
