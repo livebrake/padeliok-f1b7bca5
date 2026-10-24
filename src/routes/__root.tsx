@@ -80,7 +80,7 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
     const path = location.pathname;
-    if (path === "/greitai" || path === "/order-success" || path === "/order-cancel" || path.startsWith("/misko-skydas")) return;
+    if (path === "/greitai" || path.startsWith("/misko-skydas")) return;
     const { unlocked } = await getGateStatus();
     if (!unlocked) throw redirect({ to: "/greitai" });
   },

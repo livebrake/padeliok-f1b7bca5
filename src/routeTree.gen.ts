@@ -11,13 +11,10 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as GreitaiRouteImport } from './routes/greitai'
-import { Route as OrderCancelRouteImport } from './routes/order-cancel'
-import { Route as OrderSuccessRouteImport } from './routes/order-success'
 import { Route as PaslauguTeikimoSutartisRouteImport } from './routes/paslaugu-teikimo-sutartis'
 import { Route as PrivatumoTaisyklesRouteImport } from './routes/privatumo-taisykles'
 import { Route as MiskoSkydasIndexRouteImport } from './routes/misko-skydas.index'
 import { Route as MiskoSkydasJungtisRouteImport } from './routes/misko-skydas.jungtis'
-import { Route as ApiPublicMontonioRouteImport } from './routes/api/public/montonio'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -27,16 +24,6 @@ const IndexRoute = IndexRouteImport.update({
 const GreitaiRoute = GreitaiRouteImport.update({
   id: '/greitai',
   path: '/greitai',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrderCancelRoute = OrderCancelRouteImport.update({
-  id: '/order-cancel',
-  path: '/order-cancel',
-  getParentRoute: () => rootRouteImport,
-} as any)
-const OrderSuccessRoute = OrderSuccessRouteImport.update({
-  id: '/order-success',
-  path: '/order-success',
   getParentRoute: () => rootRouteImport,
 } as any)
 const PaslauguTeikimoSutartisRoute = PaslauguTeikimoSutartisRouteImport.update({
@@ -59,92 +46,66 @@ const MiskoSkydasJungtisRoute = MiskoSkydasJungtisRouteImport.update({
   path: '/misko-skydas/jungtis',
   getParentRoute: () => rootRouteImport,
 } as any)
-const ApiPublicMontonioRoute = ApiPublicMontonioRouteImport.update({
-  id: '/api/public/montonio',
-  path: '/api/public/montonio',
-  getParentRoute: () => rootRouteImport,
-} as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/greitai': typeof GreitaiRoute
-  '/order-cancel': typeof OrderCancelRoute
-  '/order-success': typeof OrderSuccessRoute
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
-  '/api/public/montonio': typeof ApiPublicMontonioRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/greitai': typeof GreitaiRoute
-  '/order-cancel': typeof OrderCancelRoute
-  '/order-success': typeof OrderSuccessRoute
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
   '/misko-skydas': typeof MiskoSkydasIndexRoute
-  '/api/public/montonio': typeof ApiPublicMontonioRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/greitai': typeof GreitaiRoute
-  '/order-cancel': typeof OrderCancelRoute
-  '/order-success': typeof OrderSuccessRoute
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
-  '/api/public/montonio': typeof ApiPublicMontonioRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
   fullPaths:
     | '/'
     | '/greitai'
-    | '/order-cancel'
-    | '/order-success'
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
     | '/misko-skydas/'
-    | '/api/public/montonio'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
     | '/greitai'
-    | '/order-cancel'
-    | '/order-success'
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
     | '/misko-skydas'
-    | '/api/public/montonio'
   id:
     | '__root__'
     | '/'
     | '/greitai'
-    | '/order-cancel'
-    | '/order-success'
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
     | '/misko-skydas/'
-    | '/api/public/montonio'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   GreitaiRoute: typeof GreitaiRoute
-  OrderCancelRoute: typeof OrderCancelRoute
-  OrderSuccessRoute: typeof OrderSuccessRoute
   PaslauguTeikimoSutartisRoute: typeof PaslauguTeikimoSutartisRoute
   PrivatumoTaisyklesRoute: typeof PrivatumoTaisyklesRoute
   MiskoSkydasJungtisRoute: typeof MiskoSkydasJungtisRoute
   MiskoSkydasIndexRoute: typeof MiskoSkydasIndexRoute
-  ApiPublicMontonioRoute: typeof ApiPublicMontonioRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -161,20 +122,6 @@ declare module '@tanstack/react-router' {
       path: '/greitai'
       fullPath: '/greitai'
       preLoaderRoute: typeof GreitaiRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/order-cancel': {
-      id: '/order-cancel'
-      path: '/order-cancel'
-      fullPath: '/order-cancel'
-      preLoaderRoute: typeof OrderCancelRouteImport
-      parentRoute: typeof rootRouteImport
-    }
-    '/order-success': {
-      id: '/order-success'
-      path: '/order-success'
-      fullPath: '/order-success'
-      preLoaderRoute: typeof OrderSuccessRouteImport
       parentRoute: typeof rootRouteImport
     }
     '/paslaugu-teikimo-sutartis': {
@@ -205,26 +152,16 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiskoSkydasJungtisRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/api/public/montonio': {
-      id: '/api/public/montonio'
-      path: '/api/public/montonio'
-      fullPath: '/api/public/montonio'
-      preLoaderRoute: typeof ApiPublicMontonioRouteImport
-      parentRoute: typeof rootRouteImport
-    }
   }
 }
 
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   GreitaiRoute: GreitaiRoute,
-  OrderCancelRoute: OrderCancelRoute,
-  OrderSuccessRoute: OrderSuccessRoute,
   PaslauguTeikimoSutartisRoute: PaslauguTeikimoSutartisRoute,
   PrivatumoTaisyklesRoute: PrivatumoTaisyklesRoute,
   MiskoSkydasJungtisRoute: MiskoSkydasJungtisRoute,
   MiskoSkydasIndexRoute: MiskoSkydasIndexRoute,
-  ApiPublicMontonioRoute: ApiPublicMontonioRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)

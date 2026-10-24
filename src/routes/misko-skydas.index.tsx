@@ -16,8 +16,6 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const STATUSES = [
-  { id: "PENDING", label: "Laukia apmokėjimo", variant: "outline" },
-  { id: "PAID", label: "Apmokėta", variant: "secondary" },
   { id: "Naujas", label: "Naujas", variant: "default" },
   { id: "Apmokėta", label: "Apmokėta", variant: "secondary" },
   { id: "Vykdoma", label: "Vykdoma", variant: "outline" },
@@ -27,6 +25,7 @@ const STATUSES = [
 const label = (s: string) => STATUSES.find((x) => x.id === s)?.label ?? s;
 const variant = (s: string) => STATUSES.find((x) => x.id === s)?.variant ?? "outline";
 const isCo = (t: string) => t === "company" || t === "juridinis";
+const PAID = new Set(["Apmokėta", "Vykdoma", "Atlikta"]);
 
 type SortKey = "created_at" | "full_name" | "phone" | "plan_name";
 type SortDir = "asc" | "desc";
@@ -337,7 +336,7 @@ function Dashboard() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={o.payment_status === "Apmokėta" || o.payment_status === "PAID" ? "secondary" : "outline"}>{o.payment_status === "PENDING" ? "Laukia apmokėjimo" : o.payment_status === "PAID" ? "Apmokėta" : o.payment_status}</Badge>
+                    <Badge variant={o.payment_status === "Apmokėta" || PAID.has(o.status) ? "secondary" : "outline"}>{o.payment_status}</Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>

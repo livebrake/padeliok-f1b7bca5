@@ -443,10 +443,16 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         setPaying(false);
         return;
       }
-      window.location.assign(res.paymentUrl ?? res.cancelUrl);
+      form.reset();
+      setAgreement(false);
+      setRc([]);
+      setRibos([]);
+      setErrors({});
+      toast.success("Jūsų užsakymas sėkmingai gautas! Susisieksime su jumis artimiausiu metu.");
+      onPaid(res.orderNumber);
     } catch (err) {
       const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
-      toast.error(`Nepavyko pateikti užsakymo${detail}.`);
+      toast.error(`Tinklo klaida${detail}. Patikrinkite interneto ryšį ir bandykite vėl.`);
       setPaying(false);
     }
   };
