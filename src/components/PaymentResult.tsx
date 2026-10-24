@@ -18,6 +18,7 @@ export function PaymentResult({ search, canceled = false }: { search: PaymentSea
   const [paid, setPaid] = useState(false);
   const [orderNumber, setOrderNumber] = useState("");
   const [error, setError] = useState("");
+  const [emailPending, setEmailPending] = useState(false);
   const token = search["order-token"] ?? search.orderToken;
 
   async function verify() {
@@ -26,6 +27,7 @@ export function PaymentResult({ search, canceled = false }: { search: PaymentSea
     try {
       const result = await check({ data: { orderToken: token } });
       setPaid(result.paid);
+      setEmailPending("emailPending" in result && !!result.emailPending);
       if ("orderNumber" in result) setOrderNumber(result.orderNumber);
       setError(result.error ?? "");
       if (!result.paid && !result.error && search.retry) {
@@ -46,6 +48,7 @@ export function PaymentResult({ search, canceled = false }: { search: PaymentSea
       const result = await resume({ data: { retryToken: search.retry } });
       if (result.paid) {
         setPaid(true);
+        setEmailPending("emailPending" in result && !!result.emailPending);
         if ("orderNumber" in result) setOrderNumber(result.orderNumber);
       } else if (result.paymentUrl) window.location.assign(result.paymentUrl);
       else setError(result.error ?? "Nepavyko pratęsti mokėjimo.");
@@ -61,7 +64,7 @@ export function PaymentResult({ search, canceled = false }: { search: PaymentSea
         : <CircleX className="mx-auto h-12 w-12 text-muted-foreground" />}
       <h1 className="mt-6 text-3xl font-semibold">{busy ? "Tikrinamas mokėjimas" : paid ? "Mokėjimas patvirtintas" : canceled ? "Mokėjimas nebaigtas" : "Mokėjimas nepatvirtintas"}</h1>
       {orderNumber && <p className="mt-4 font-mono text-lg">#{orderNumber}</p>}
-      <p className="mt-4 text-muted-foreground">{paid ? "Dėkojame! Užsakymo patvirtinimas išsiųstas el. paštu. Susisieksime per 48–72 val." : "Jei mokėjimą nutraukėte arba jis nepavyko, galite bandyti dar kartą. Užsakymo iš naujo pildyti nereikia."}</p>
+      <p className="mt-4 text-muted-foreground">{paid ? emailPending ? "Dėkojame! Mokėjimas gautas. Patvirtinimo laiško siuntimas užtruko; dėl užsakymo kreipkitės į info@padeliok.lt." : "Dėkojame! Užsakymo patvirtinimas išsiųstas el. paštu. Susisieksime per 48–72 val." : "Jei mokėjimą nutraukėte arba jis nepavyko, galite bandyti dar kartą. Užsakymo iš naujo pildyti nereikia."}</p>
       {error && <p role="alert" className="mt-4 text-sm text-destructive">{error}</p>}
       <div className="mt-8 flex flex-wrap justify-center gap-3">
         {!paid && search.retry && <Button disabled={busy} onClick={retry}><RefreshCw className="h-4 w-4" />Bandyti mokėti dar kartą</Button>}

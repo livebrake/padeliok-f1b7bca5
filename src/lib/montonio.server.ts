@@ -54,7 +54,7 @@ async function confirmPaid(order: Awaited<ReturnType<typeof findOrder>>) {
   const { error } = await supabaseAdmin.from("orders").update({ status: "PAID", payment_status: "PAID" })
     .eq("id", order.id).neq("payment_status", "PAID");
   if (error) throw new Error("Nepavyko išsaugoti mokėjimo patvirtinimo.");
-  if (order.payment_email_sent_at) return;
+  if (order.payment_email_sent_at) return true;
   const fileLinks: { name: string; url: string }[] = [];
   for (const path of order.file_paths) {
     const { data } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(path, 60 * 60 * 24 * 7);
@@ -68,10 +68,11 @@ async function confirmPaid(order: Awaited<ReturnType<typeof findOrder>>) {
       company_address: order.company_address, vat_code: order.vat_code ?? "" } : null,
     fileLinks,
   });
-  if (!sent) throw new Error("Mokėjimas patvirtintas, tačiau laiško išsiųsti nepavyko. Patikrinkite būseną dar kartą.");
+  if (!sent) return false;
   const { error: emailError } = await supabaseAdmin.from("orders")
     .update({ payment_email_sent_at: new Date().toISOString() }).eq("id", order.id);
   if (emailError) throw new Error("Nepavyko išsaugoti laiško išsiuntimo būsenos.");
+  return true;
 }
 
 export async function verifyPayment(orderToken: string, config: MontonioConfig) {
@@ -81,8 +82,8 @@ export async function verifyPayment(orderToken: string, config: MontonioConfig) 
   const remote = await requestOrder(claims.uuid, config);
   if (!paymentMatches(order, remote)) throw new Error("Mokėjimo duomenys neatitinka užsakymo.");
   if (remote.paymentStatus === "PAID") {
-    await confirmPaid(order);
-    return { paid: true, orderNumber: order.order_number };
+    const emailed = await confirmPaid(order);
+    return { paid: true, orderNumber: order.order_number, emailPending: !emailed };
   }
   return { paid: false, orderNumber: order.order_number };
 }
@@ -115,6 +116,7 @@ export async function initiatePayment(reference: string, origin: string, config:
     });
     if (!res.ok) {
       // Do not log the request JWT, returned URLs, or credentials.
+      console.error(`Montonio create order failed [${res.status}]`);
       throw new Error(`Montonio nepavyko pradėti mokėjimo (${res.status}). Patikrinkite testinės parduotuvės nustatymus.`);
     }
     const remote = remoteSchema.extend({ paymentUrl: z.string().url() }).parse(await res.json());
@@ -136,13 +138,12 @@ export async function initiatePayment(reference: string, origin: string, config:
 export async function retryPayment(token: string, origin: string, config: MontonioConfig) {
   const reference = await retryReference(token, config);
   const order = await findOrder(reference);
-  if (order.payment_status === "PAID") return { paid: true, orderNumber: reference, paymentUrl: null };
   if (order.montonio_uuid) {
     const remote = await requestOrder(order.montonio_uuid, config);
     if (!paymentMatches(order, remote)) throw new Error("Mokėjimo duomenys neatitinka užsakymo.");
     if (remote.paymentStatus === "PAID") {
-      await confirmPaid(order);
-      return { paid: true, orderNumber: reference, paymentUrl: null };
+      const emailed = await confirmPaid(order);
+      return { paid: true, orderNumber: reference, paymentUrl: null, emailPending: !emailed };
     }
     // Reuse the existing Montonio order, avoiding duplicate charge attempts.
     if (order.montonio_checkout_url) return { paid: false, orderNumber: reference, paymentUrl: order.montonio_checkout_url };

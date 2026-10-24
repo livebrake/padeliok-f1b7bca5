@@ -16,7 +16,8 @@ export const Route = createFileRoute("/api/public/montonio")({
       const { verifyOrderToken, verifyPayment } = await import("@/lib/montonio.server");
       try { await verifyOrderToken(parsed.data.orderToken, { accessKey, secretKey }); }
       catch { return new Response("Invalid signature", { status: 401 }); }
-      await verifyPayment(parsed.data.orderToken, { accessKey, secretKey });
+      const result = await verifyPayment(parsed.data.orderToken, { accessKey, secretKey });
+      if ("emailPending" in result && result.emailPending) return new Response("Email delivery pending", { status: 503 });
       return new Response("OK", { status: 200 });
     } catch {
       return new Response("Unable to process notification", { status: 503 });
