@@ -14,7 +14,7 @@ type OrderEmailData = {
 
 const TEAM_EMAIL = "info@padeliok.lt";
 const esc = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
 
 const row = (k: string, v: string) =>
   `<tr><td style="padding:6px 12px 6px 0;color:#666;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;color:#111">${v}</td></tr>`;
@@ -71,13 +71,14 @@ function clientHtml(d: OrderEmailData) {
     <p>Pagarbiai,<br>padeliok.lt komanda</p>`);
 }
 
-async function send(apiKey: string, from: string, payload: Record<string, unknown>) {
+async function send(apiKey: string, from: string, payload: Record<string, unknown>, idempotencyKey: string) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
     body: JSON.stringify({ from, ...payload }),
   });
-  if (!res.ok) console.error(`Resend failed [${res.status}]: ${await res.text()}`);
+  if (!res.ok) console.error(`Resend failed [${res.status}]`);
+  return res.ok;
 }
 
 /** Sends team + client emails. Never throws: an email failure must not fail the order. */
@@ -85,25 +86,27 @@ export async function sendOrderEmails(d: OrderEmailData) {
   const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) {
     console.error("RESEND_API_KEY is not configured – order emails skipped");
-    return;
+    return false;
   }
   const from = process.env["RESEND_FROM"] || "Padeliok <uzsakymai@padeliok.lt>";
   try {
-    await Promise.all([
+    const results = await Promise.all([
       send(apiKey, from, {
         to: [TEAM_EMAIL],
         reply_to: d.email,
         subject: `Naujas užsakymas #${d.orderNumber} - ${d.planName}`,
         html: teamHtml(d),
-      }),
+      }, `paid-${d.orderNumber}-team`),
       send(apiKey, from, {
         to: [d.email],
         reply_to: TEAM_EMAIL,
         subject: `Jūsų užsakymas #${d.orderNumber} priimtas | padeliok.lt`,
         html: clientHtml(d),
-      }),
+      }, `paid-${d.orderNumber}-client`),
     ]);
+    return results.every(Boolean);
   } catch (e) {
     console.error("order emails failed", e);
+    return false;
   }
 }
