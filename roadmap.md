@@ -3,3 +3,4 @@
 - [x] Test rules (12 passed) and verify complete checkout flow (PAD-1002). Existing routing smoke tests fail because the document shell renders outside their container; unrelated to checkout.
 - [x] Keep submission clickable, show every validation error, and scroll to the first invalid field; browser verified for private and company clients, 15 validation tests passed.
 - [x] Admin search matches order number in any form (PAD-1004, #PAD-1004, pad 1004, 1004, 01004) plus name, company, email and phone; 18 search tests passed, verified live as admin.
+- [ ] Open the main page automatically on recognized preview hosts while preserving the published password gate and admin authentication; test production-mode host classification and preview navigation.

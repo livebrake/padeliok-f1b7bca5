@@ -1,6 +1,7 @@
 import { createServerFn } from "@tanstack/react-start";
-import { useSession } from "@tanstack/react-start/server";
+import { getRequest, useSession } from "@tanstack/react-start/server";
 import { createHash, timingSafeEqual } from "node:crypto";
+import { isPreviewHostname } from "@/lib/preview-host";
 
 type GateSession = { unlocked?: boolean };
 
@@ -27,8 +28,12 @@ function matches(input: string, expected: string) {
 }
 
 export const getGateStatus = createServerFn({ method: "GET" }).handler(async () => {
+  // Built previews also run in production mode. Trust the request URL only,
+  // never an environment flag or caller-supplied forwarded host header.
+  const preview = isPreviewHostname(new URL(getRequest().url).hostname);
+  if (preview) return { unlocked: true, preview: true };
   const session = await useSession<GateSession>(getConfig().session);
-  return { unlocked: !!session.data.unlocked };
+  return { unlocked: !!session.data.unlocked, preview: false };
 });
 
 export const unlockSite = createServerFn({ method: "POST" })

@@ -1,18 +1,24 @@
-import { createFileRoute, useRouter } from "@tanstack/react-router";
+import { createFileRoute, redirect, useRouter } from "@tanstack/react-router";
 import { useServerFn } from "@tanstack/react-start";
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { unlockSite } from "@/lib/gate.functions";
+import { getGateStatus, unlockSite } from "@/lib/gate.functions";
 
 export const Route = createFileRoute("/greitai")({
+  beforeLoad: async () => {
+    const { preview } = await getGateStatus();
+    if (preview) throw redirect({ to: "/" });
+  },
   head: () => ({
     meta: [
       { title: "Greitai | padeliOK.lt" },
       { name: "description", content: "Svetainė ruošiama. Greitai susitiksime!" },
       { property: "og:title", content: "Greitai | padeliOK.lt" },
       { property: "og:description", content: "Svetainė ruošiama. Greitai susitiksime!" },
+      { property: "og:type", content: "website" },
+      { name: "twitter:card", content: "summary_large_image" },
       { name: "robots", content: "noindex" },
     ],
   }),
