@@ -1,0 +1,3 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS montonio_uuid uuid, ADD COLUMN IF NOT EXISTS montonio_checkout_url text, ADD COLUMN IF NOT EXISTS payment_email_sent_at timestamptz;
+CREATE UNIQUE INDEX IF NOT EXISTS orders_montonio_uuid_unique ON public.orders (montonio_uuid) WHERE montonio_uuid IS NOT NULL;
+COMMENT ON COLUMN public.orders.montonio_uuid IS 'Montonio sandbox order identifier; payment confirmation must match reference, amount and currency.';

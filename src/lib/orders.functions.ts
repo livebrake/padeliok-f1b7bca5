@@ -1,4 +1,5 @@
 import { createServerFn } from "@tanstack/react-start";
+import { getRequest } from "@tanstack/react-start/server";
 import { z } from "zod";
 import { validateCheckout, normalizePhone, FILE_EXT } from "@/lib/order-validation";
 
@@ -39,8 +40,8 @@ const payload = z.object({
 });
 
 export type SubmitResult =
-  | { ok: true; orderNumber: string }
-  | { ok: false; code: "validation" | "storage" | "database"; message: string };
+  | { ok: true; orderNumber: string; paymentUrl: string | null; cancelUrl: string }
+  | { ok: false; code: "validation" | "storage" | "database" | "payment"; message: string };
 
 const invalid = (message: string): SubmitResult => ({ ok: false, code: "validation", message });
 
@@ -55,7 +56,8 @@ export const submitOrder = createServerFn({ method: "POST" })
     // Shared eligibility rules — the same browser-safe module the form uses.
     const fileMeta = v.filePaths.map((p) => ({ name: p.split("/").pop() ?? p, size: 1 }));
     const errs = validateCheckout({ ...v, noVat: v.noVat ? "1" : "0" }, fileMeta);
-    if (Object.keys(errs).length) return invalid(Object.values(errs)[0]!);
+    const firstError = Object.values(errs)[0];
+    if (firstError) return invalid(firstError);
 
     if (!isCo && v.fullName.split(/\s+/).length < 2)
       return invalid("Prašome įrašyti ir pavardę (mažiausiai du žodžius).");
@@ -88,6 +90,9 @@ export const submitOrder = createServerFn({ method: "POST" })
     if (v.filePaths.some((p) => !/^incoming\/[a-zA-Z0-9._-]+$/.test(p) || !FILE_EXT.test(p)))
       return invalid("Neteisinga įkelto failo nuoroda. Įkelkite failus iš naujo.");
 
+    const accessKey = process.env["MONTONIO_ACCESS_KEY"];
+    const secretKey = process.env["MONTONIO_SECRET_KEY"];
+    if (!accessKey || !secretKey) return { ok: false, code: "payment", message: "Montonio testiniai mokėjimai nesukonfigūruoti." };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     const { data: seq } = await supabaseAdmin.rpc("next_order_number");
     const orderNumber = seq ?? `PAD-${Date.now().toString().slice(-6)}`;
@@ -111,8 +116,8 @@ export const submitOrder = createServerFn({ method: "POST" })
       phone,
       plan_name: plan.name,
       price: plan.price,
-      status: "Naujas",
-      payment_status: "Laukia apmokėjimo",
+      status: "PENDING",
+      payment_status: "PENDING",
       client_type: isCo ? "company" : "private",
       company_name: company?.company_name ?? null,
       company_code: company?.company_code ?? null,
@@ -128,15 +133,7 @@ export const submitOrder = createServerFn({ method: "POST" })
       return { ok: false, code: "database", message: `Nepavyko išsaugoti užsakymo: ${error.message}` };
     }
 
-    const fileLinks: { name: string; url: string }[] = [];
-    for (const p of finalPaths) {
-      const { data: s } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(p, 60 * 60 * 24 * 7);
-      if (s?.signedUrl) fileLinks.push({ name: p.split("/").pop()!.slice(9), url: s.signedUrl });
-    }
-    const { sendOrderEmails } = await import("@/lib/order-emails.server");
-    await sendOrderEmails({
-      orderNumber, isCompany: isCo, fullName, email: v.email, phone,
-      planName: plan.name, price: plan.price, projectGoal: v.projectGoal, comment, company, fileLinks,
-    });
-    return { ok: true, orderNumber };
+    const { initiatePayment } = await import("@/lib/montonio.server");
+    const payment = await initiatePayment(orderNumber, new URL(getRequest().url).origin, { accessKey, secretKey });
+    return { ok: true, orderNumber, ...payment };
   });
