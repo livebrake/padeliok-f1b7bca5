@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { describe, expect, it, vi } from "vitest";
 import { SignJWT } from "jose";
 vi.mock("@/integrations/supabase/client.server", () => ({ supabaseAdmin: {} }));
