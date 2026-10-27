@@ -1,5 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
-import { useRef, useState, type ReactNode } from "react";
+import { useEffect, useRef, useState, type ReactNode } from "react";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { serviceTermsSections } from "@/lib/service-terms";
@@ -31,6 +31,7 @@ import {
 } from "lucide-react";
 import { toast } from "sonner";
 import { submitOrder } from "@/lib/orders.functions";
+import { getPaymentMethods } from "@/lib/payments.functions";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC =
@@ -130,6 +131,12 @@ function Index() {
   const [plan, setPlan] = useState<Plan | null>(null);
   const [doc, setDoc] = useState<null | "sutartis" | "privatumas">(null);
   const [done, setDone] = useState<string | false>(false);
+  useEffect(() => {
+    if (new URLSearchParams(window.location.search).get("mokejimas") === "atsauktas") {
+      toast.error("Mokėjimas atšauktas. Pasirinkite planą ir bandykite dar kartą.");
+      window.history.replaceState(null, "", "/#kainos");
+    }
+  }, []);
 
   return (
     <div className="min-h-screen bg-background text-foreground">
@@ -363,11 +370,20 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
   const [paying, setPaying] = useState(false);
-  const [phase, setPhase] = useState<"upload" | "submit">("submit");
+  const [phase, setPhase] = useState<"upload" | "submit" | "redirect">("submit");
   const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
   const [noVat, setNoVat] = useState(false);
   const [agreement, setAgreement] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
+  const [method, setMethod] = useState("");
+  const [methods, setMethods] = useState<{ code: string; name: string; logoUrl: string; kind: string }[] | null>(null);
+  const [methodsError, setMethodsError] = useState<string | null>(null);
+  useEffect(() => {
+    getPaymentMethods().then((r) => {
+      setMethods(r.methods);
+      setMethodsError(r.error);
+    });
+  }, []);
   const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];
   const total = all.reduce((s, f) => s + f.size, 0);
@@ -381,6 +397,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
       { ...Object.fromEntries(fd), clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" },
       all,
     );
+    if (!method) errs["paymentMethod"] = "Pasirinkite mokėjimo būdą.";
     setErrors(errs);
     if (Object.keys(errs).length) {
       requestAnimationFrame(() => {
@@ -436,6 +453,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           noVat,
           agreement: "1",
           filePaths: paths,
+          paymentMethod: method,
         },
       });
       if (!res.ok) {
@@ -443,13 +461,9 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         setPaying(false);
         return;
       }
-      form.reset();
-      setAgreement(false);
-      setRc([]);
-      setRibos([]);
-      setErrors({});
-      toast.success("Jūsų užsakymas sėkmingai gautas! Susisieksime su jumis artimiausiu metu.");
-      onPaid(res.orderNumber);
+      setPhase("redirect");
+      window.location.assign(res.paymentUrl);
+      void onPaid;
     } catch (err) {
       const detail = err instanceof Error && err.message ? `: ${err.message}` : "";
       toast.error(`Tinklo klaida${detail}. Patikrinkite interneto ryšį ir bandykite vėl.`);
@@ -757,6 +771,47 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           <span>{plan.price} €</span>
         </div>
         <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
+        <div data-validation-field="paymentMethod" className="flex flex-col gap-2">
+          <p className="text-sm font-semibold">
+            Mokėjimo būdas <span className="text-destructive">*</span>
+          </p>
+          {methods === null ? (
+            <div className="grid grid-cols-3 gap-2">
+              {[0, 1, 2, 3, 4, 5].map((i) => (
+                <div key={i} className="h-12 animate-pulse rounded-md bg-muted" />
+              ))}
+            </div>
+          ) : methodsError ? (
+            <p className="text-xs text-destructive">{methodsError}</p>
+          ) : (
+            <div role="radiogroup" aria-label="Mokėjimo būdas" className="grid grid-cols-3 gap-2">
+              {methods.map((m) => (
+                <button
+                  key={m.code}
+                  type="button"
+                  role="radio"
+                  aria-checked={method === m.code}
+                  aria-label={m.name}
+                  title={m.name}
+                  disabled={paying}
+                  onClick={() => {
+                    setMethod(m.code);
+                    clear("paymentMethod");
+                  }}
+                  className={`flex h-12 items-center justify-center rounded-md border bg-card p-2 transition ${
+                    method === m.code ? "border-primary ring-2 ring-primary" : errors["paymentMethod"] ? "border-destructive" : "border-border hover:border-primary/50"
+                  } ${m.kind === "card" ? "col-span-3 gap-2 text-xs font-medium" : ""}`}
+                >
+                  {m.logoUrl && <img src={m.logoUrl} alt="" className="max-h-7 max-w-full object-contain" loading="lazy" />}
+                  {m.kind === "card" && <span>{m.name}</span>}
+                </button>
+              ))}
+            </div>
+          )}
+          {errors["paymentMethod"] && (
+            <p role="alert" className="text-xs text-destructive">{errors["paymentMethod"]}</p>
+          )}
+        </div>
         <div data-validation-field="agreement" className="mt-auto flex items-start gap-2 text-sm">
           <Checkbox
             id="order-agreement"
@@ -832,10 +887,10 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {phase === "upload" ? "Įkeliami failai…" : "Siunčiama…"}
+              {phase === "upload" ? "Įkeliami failai…" : phase === "redirect" ? "Nukreipiama į mokėjimą…" : "Siunčiama…"}
             </span>
           ) : (
-            "Pateikti užsakymą"
+            "Pateikti ir apmokėti"
           )}
         </Btn>
       </aside>

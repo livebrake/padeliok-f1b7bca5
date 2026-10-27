@@ -336,7 +336,7 @@ function Dashboard() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={o.payment_status === "Apmokėta" || PAID.has(o.status) ? "secondary" : "outline"}>{o.payment_status}</Badge>
+                    <Badge variant={o.payment_status === "Apmokėta" || o.payment_status === "PAID" || PAID.has(o.status) ? "secondary" : "outline"}>{o.payment_status === "PAID" ? "Apmokėta" : o.payment_status === "PENDING" ? "Laukia apmokėjimo" : o.payment_status}</Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
