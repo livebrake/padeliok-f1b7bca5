@@ -1,4 +1,4 @@
-import { createFileRoute, Link } from "@tanstack/react-router";
+import { createFileRoute } from "@tanstack/react-router";
 import { XCircle } from "lucide-react";
 
 export const Route = createFileRoute("/order-cancel")({
@@ -25,9 +25,9 @@ function Cancel() {
         <p className="mt-2 text-muted-foreground">
           {order ? `Užsakymas #${order} neapmokėtas. ` : ""}Pinigai nenuskaičiuoti. Galite pasirinkti kitą mokėjimo būdą ir bandyti dar kartą.
         </p>
-        <Link to="/" search={{ mokejimas: "atsauktas" }} className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
+        <a href="/?mokejimas=atsauktas#kainos" className="mt-6 inline-flex rounded-md bg-primary px-4 py-2 text-sm font-medium text-primary-foreground">
           Grįžti į užsakymą
-        </Link>
+        </a>
       </div>
     </main>
   );
