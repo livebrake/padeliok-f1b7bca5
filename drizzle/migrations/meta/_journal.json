@@ -64,6 +64,27 @@
       "when": 1793110016352,
       "tag": "0008_montonio_payments",
       "breakpoints": true
+    },
+    {
+      "idx": 9,
+      "version": "7",
+      "when": 1793118351399,
+      "tag": "0009_team_access_and_order_audit",
+      "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1793118479310,
+      "tag": "0010_harden_team_financial_and_storage_access",
+      "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793118584696,
+      "tag": "0011_enforce_active_team_document_access",
+      "breakpoints": true
     }
   ]
 }

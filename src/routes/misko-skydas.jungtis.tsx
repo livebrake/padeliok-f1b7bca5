@@ -11,10 +11,10 @@ export const Route = createFileRoute("/misko-skydas/jungtis")({
   ssr: false,
   head: () => ({
     meta: [
-      { title: "Prisijungimas" },
+      { title: "Padeliok · Komandos prisijungimas" },
       { name: "robots", content: "noindex, nofollow" },
       { name: "description", content: "Administratoriaus prisijungimas." },
-      { property: "og:title", content: "Prisijungimas" },
+      { property: "og:title", content: "Padeliok · Komandos prisijungimas" },
       { property: "og:description", content: "Administratoriaus prisijungimas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -38,7 +38,7 @@ function Login() {
       toast.error("Neteisingas el. paštas arba slaptažodis.");
       return;
     }
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
+    const { data: isAdmin } = await supabase.rpc('team_access');
     setBusy(false);
     if (!isAdmin) {
       await supabase.auth.signOut();
@@ -52,7 +52,7 @@ function Login() {
     <main className="min-h-screen grid place-items-center bg-muted/40 px-4">
       <form onSubmit={submit} className="w-full max-w-sm space-y-4 rounded-xl border bg-card p-6 shadow-sm">
         <div>
-          <h1 className="text-xl font-bold">Administratoriaus prisijungimas</h1>
+          <h1 className="text-xl font-bold">Komandos prisijungimas</h1>
           <p className="text-sm text-muted-foreground">Įveskite savo prisijungimo duomenis.</p>
         </div>
         <div className="space-y-2">

@@ -14,8 +14,47 @@ export type Database = {
   }
   public: {
     Tables: {
+      order_audit_logs: {
+        Row: {
+          action_type: string
+          actor_id: string | null
+          actor_name: string
+          created_at: string
+          description: string
+          id: string
+          order_id: string
+        }
+        Insert: {
+          action_type: string
+          actor_id?: string | null
+          actor_name: string
+          created_at?: string
+          description: string
+          id?: string
+          order_id: string
+        }
+        Update: {
+          action_type?: string
+          actor_id?: string | null
+          actor_name?: string
+          created_at?: string
+          description?: string
+          id?: string
+          order_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_audit_logs_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
+          assigned_member_id: string | null
           client_name: string | null
           client_type: string
           comment: string | null
@@ -41,10 +80,12 @@ export type Database = {
           plan_name: string
           price: number
           project_goal: string | null
+          response_file_paths: string[]
           status: string
           vat_code: string | null
         }
         Insert: {
+          assigned_member_id?: string | null
           client_name?: string | null
           client_type?: string
           comment?: string | null
@@ -70,10 +111,12 @@ export type Database = {
           plan_name: string
           price: number
           project_goal?: string | null
+          response_file_paths?: string[]
           status?: string
           vat_code?: string | null
         }
         Update: {
+          assigned_member_id?: string | null
           client_name?: string | null
           client_type?: string
           comment?: string | null
@@ -99,8 +142,77 @@ export type Database = {
           plan_name?: string
           price?: number
           project_goal?: string | null
+          response_file_paths?: string[]
           status?: string
           vat_code?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "orders_assigned_member_id_fkey"
+            columns: ["assigned_member_id"]
+            isOneToOne: false
+            referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          full_name: string
+          id: string
+        }
+        Insert: {
+          created_at?: string
+          full_name?: string
+          id: string
+        }
+        Update: {
+          created_at?: string
+          full_name?: string
+          id?: string
+        }
+        Relationships: []
+      }
+      team_members: {
+        Row: {
+          created_at: string
+          email: string
+          id: string
+          is_active: boolean
+          name: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          email: string
+          id?: string
+          is_active?: boolean
+          name: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          email?: string
+          id?: string
+          is_active?: boolean
+          name?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      team_roles: {
+        Row: {
+          role: string
+          user_id: string
+        }
+        Insert: {
+          role: string
+          user_id: string
+        }
+        Update: {
+          role?: string
+          user_id?: string
         }
         Relationships: []
       }
@@ -127,6 +239,17 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      change_team_order: {
+        Args: {
+          change_assignment?: boolean
+          member_uuid?: string
+          note_text?: string
+          order_uuid: string
+          response_path?: string
+          work_status?: string
+        }
+        Returns: undefined
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -134,7 +257,20 @@ export type Database = {
         }
         Returns: boolean
       }
+      manage_team_member: {
+        Args: {
+          active: boolean
+          display_name: string
+          member_email: string
+          new_role: string
+          target_user: string
+        }
+        Returns: undefined
+      }
       next_order_number: { Args: never; Returns: string }
+      team_access: { Args: never; Returns: string }
+      team_order_exists: { Args: { order_text: string }; Returns: boolean }
+      team_orders: { Args: never; Returns: Json }
     }
     Enums: {
       app_role: "admin" | "user"

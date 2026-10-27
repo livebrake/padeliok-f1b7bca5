@@ -5,6 +5,10 @@ import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { matchesOrderQuery } from "@/lib/order-search";
+import { WORK_STATUSES, canManageTeam, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
+import { TeamManagement } from '@/components/TeamManagement';
+import { OrderDetails } from '@/components/OrderDetails';
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
@@ -17,7 +21,6 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 
 const STATUSES = [
   { id: "Naujas", label: "Naujas", variant: "default" },
-  { id: "Apmokėta", label: "Apmokėta", variant: "secondary" },
   { id: "Vykdoma", label: "Vykdoma", variant: "outline" },
   { id: "Atlikta", label: "Atlikta", variant: "secondary" },
   { id: "Atšaukta", label: "Atšaukta", variant: "destructive" },
@@ -25,7 +28,6 @@ const STATUSES = [
 const label = (s: string) => STATUSES.find((x) => x.id === s)?.label ?? s;
 const variant = (s: string) => STATUSES.find((x) => x.id === s)?.variant ?? "outline";
 const isCo = (t: string) => t === "company" || t === "juridinis";
-const PAID = new Set(["Apmokėta", "Vykdoma", "Atlikta"]);
 
 type SortKey = "created_at" | "full_name" | "phone" | "plan_name";
 type SortDir = "asc" | "desc";
@@ -56,15 +58,15 @@ export const Route = createFileRoute("/misko-skydas/")({
   beforeLoad: async () => {
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/", replace: true });
-    const { data: isAdmin } = await supabase.rpc("has_role", { _user_id: data.user.id, _role: "admin" });
-    if (!isAdmin) throw redirect({ to: "/", replace: true });
+    const { data: role } = await supabase.rpc('team_access');
+    if (!role) throw redirect({ to: "/", replace: true });
   },
   head: () => ({
     meta: [
-      { title: "Užsakymų valdymas" },
+      { title: "Padeliok · Užsakymų ir komandos valdymas" },
       { name: "robots", content: "noindex, nofollow" },
       { name: "description", content: "Vidinis užsakymų valdymo skydas." },
-      { property: "og:title", content: "Užsakymų valdymas" },
+      { property: "og:title", content: "Padeliok · Užsakymų ir komandos valdymas" },
       { property: "og:description", content: "Vidinis užsakymų valdymo skydas." },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary" },
@@ -84,27 +86,39 @@ function Dashboard() {
   const [dateTo, setDateTo] = useState("");
   const [sortKey, setSortKey] = useState<SortKey>("created_at");
   const [sortDir, setSortDir] = useState<SortDir>("desc");
+  const [view, setView] = useState('orders');
+  const [selectedId, setSelectedId] = useState<string | null>(null);
+  const { data: role } = useQuery({ queryKey: ['team-role'], queryFn: async () => { const { data, error } = await supabase.rpc('team_access'); if (error) throw error; return data; } });
+  const manager = canManageTeam(role);
+  const { data: members } = useQuery({ queryKey: ['team-members'], queryFn: async () => { const { data, error } = await supabase.from('team_members').select('*'); if (error) throw error; return data; } });
 
   const { data: orders, isLoading, error } = useQuery({
     queryKey: ["admin-orders"],
     queryFn: async () => {
-      const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false });
+      const { data, error } = await supabase.rpc('team_orders');
       if (error) throw error;
-      return data;
+      return (Array.isArray(data) ? data : []) as unknown as TeamOrder[];
     },
   });
 
   const update = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
-      const { error } = await supabase.from("orders").update({ status }).eq("id", id);
+      if (!WORK_STATUSES.some(s => s === status)) throw new Error('Netinkama darbo būsena.');
+      const { error } = await supabase.rpc('change_team_order', { order_uuid: id, work_status: status });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
+      qc.invalidateQueries({ queryKey: ['order-audit', v.id] });
       toast.success(`Būsena pakeista į „${label(v.status)}“`);
     },
     onError: () => toast.error("Nepavyko pakeisti būsenos."),
   });
+
+  const assign = useMutation({ mutationFn: async ({ id, member }: { id: string; member: string }) => {
+    // Omit member_uuid to use the SQL NULL default for unassignment.
+    const { error } = await supabase.rpc('change_team_order', { order_uuid: id, change_assignment: true, ...(member === 'none' ? {} : { member_uuid: member }) }); if (error) throw error;
+  }, onSuccess: (_, v) => { qc.invalidateQueries({ queryKey: ['admin-orders'] }); qc.invalidateQueries({ queryKey: ['order-audit', v.id] }); toast.success('Priskyrimas atnaujintas.'); }, onError: (e) => toast.error(e.message) });
 
   async function openFile(path: string) {
     const { data, error } = await supabase.storage.from("order-documents").createSignedUrl(path, 300);
@@ -206,7 +220,7 @@ function Dashboard() {
     const active = sortKey === id;
     return (
       <TableHead>
-        <button
+        <Button variant="ghost" size="sm"
           type="button"
           onClick={() => toggleSort(id)}
           className="inline-flex items-center gap-1 font-medium hover:text-foreground"
@@ -217,7 +231,7 @@ function Dashboard() {
           ) : (
             <ArrowUpDown className="h-3 w-3 text-muted-foreground/50" />
           )}
-        </button>
+        </Button>
       </TableHead>
     );
   }
@@ -226,7 +240,7 @@ function Dashboard() {
     <main className="min-h-screen bg-muted/30">
       <header className="border-b bg-background">
         <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-4">
-          <h1 className="text-lg font-bold">Užsakymų valdymas</h1>
+          <div className="flex items-center gap-3"><img src="/logo.png" alt="Padeliok" className="h-8 w-auto" /><h1 className="text-lg font-bold">Užsakymų valdymas</h1></div>
           <Button variant="outline" size="sm" onClick={logout}>
             <LogOut className="mr-2 h-4 w-4" />Atsijungti
           </Button>
@@ -234,6 +248,8 @@ function Dashboard() {
       </header>
 
       <div className="mx-auto max-w-7xl space-y-4 px-4 py-6">
+        <Tabs value={manager ? view : 'orders'} onValueChange={setView}><TabsList><TabsTrigger value="orders">Užsakymai</TabsTrigger>{manager && <><TabsTrigger value="finance">Finansai</TabsTrigger><TabsTrigger value="team">Komanda</TabsTrigger><TabsTrigger value="settings">Nustatymai</TabsTrigger></>}</TabsList></Tabs>
+        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><h2 className="text-xl font-bold">Finansai</h2><dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Apmokėta</dt><dd className="text-3xl font-bold">{(orders ?? []).filter(o => paymentLabel(o.payment_status)==='Apmokėta').reduce((sum,o)=>sum+(o.price ?? 0),0)} €</dd></div><div><dt className="text-muted-foreground">Laukia apmokėjimo</dt><dd className="text-3xl font-bold">{(orders ?? []).filter(o => paymentLabel(o.payment_status)==='Laukia apmokėjimo').reduce((sum,o)=>sum+(o.price ?? 0),0)} €</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{(orders ?? []).filter(o => paymentLabel(o.payment_status)==='Apmokėta').length}</dd></div></dl></section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p></section> : <>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="flex-wrap h-auto">
@@ -310,7 +326,7 @@ function Dashboard() {
               )}
               {filtered.map((o) => (
                 <TableRow key={o.id}>
-                  <TableCell className="font-mono text-xs">#{o.order_number}</TableCell>
+                  <TableCell className="font-mono text-xs"><Button variant="link" size="sm" onClick={() => setSelectedId(o.id)}>#{o.order_number}</Button></TableCell>
                   <TableCell className="whitespace-nowrap text-sm">
                     {new Date(o.created_at).toLocaleString("lt-LT", { timeZone: "Europe/Vilnius", dateStyle: "short", timeStyle: "short" })}
                   </TableCell>
@@ -324,27 +340,27 @@ function Dashboard() {
                   </TableCell>
                   <TableCell><a className="text-sm underline-offset-2 hover:underline" href={`mailto:${o.email}`}>{o.email}</a></TableCell>
                   <TableCell className="whitespace-nowrap"><a className="text-sm" href={`tel:${o.phone}`}>{o.phone}</a></TableCell>
-                  <TableCell className="whitespace-nowrap text-sm">{o.plan_name} · {Number(o.price)} €</TableCell>
+                  <TableCell className="whitespace-nowrap text-sm">{o.plan_name}{manager && o.price !== undefined ? ` · ${o.price} €` : ''}</TableCell>
                   <TableCell>
                     <div className="flex flex-col gap-1">
                       {o.file_paths.length === 0 && <span className="text-xs text-muted-foreground">—</span>}
                       {o.file_paths.map((p, i) => (
-                        <button key={p} onClick={() => openFile(p)} className="inline-flex items-center gap-1 text-xs text-primary hover:underline">
+                        <Button variant="link" size="sm" key={p} onClick={() => openFile(p)} className="inline-flex items-center gap-1 text-xs text-primary">
                           <FileText className="h-3 w-3" />Failas {i + 1}
-                        </button>
+                        </Button>
                       ))}
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={o.payment_status === "Apmokėta" || o.payment_status === "PAID" || PAID.has(o.status) ? "secondary" : "outline"}>{o.payment_status === "PAID" ? "Apmokėta" : o.payment_status === "PENDING" ? "Laukia apmokėjimo" : o.payment_status}</Badge>
+                    <Badge variant={paymentLabel(o.payment_status) === 'Apmokėta' ? 'secondary' : 'outline'}>{paymentLabel(o.payment_status)}</Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
-                        <button className="inline-flex items-center gap-1" disabled={update.isPending}>
+                        <Button variant="ghost" size="sm" className="inline-flex items-center gap-1" disabled={update.isPending} aria-label={`Būsena: ${o.order_number}`}>
                           <Badge variant={variant(o.status)}>{label(o.status)}</Badge>
                           <ChevronDown className="h-3 w-3 text-muted-foreground" />
-                        </button>
+                        </Button>
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {STATUSES.map((s) => (
@@ -352,12 +368,16 @@ function Dashboard() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
+                    {o.assigned_member_id && <Badge variant="outline" className="ml-1">{shortName(members?.find(m => m.id === o.assigned_member_id)?.name ?? 'Darbuotojas')}</Badge>}
+                    <Select value={o.assigned_member_id ?? 'none'} onValueChange={member => assign.mutate({ id: o.id, member })} disabled={assign.isPending}><SelectTrigger className="mt-2 min-w-36" aria-label={`Priskirti: ${o.order_number}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Nepriskirta</SelectItem>{members?.filter(m => m.is_active || m.id===o.assigned_member_id).map(m => <SelectItem disabled={!m.is_active} key={m.id} value={m.id}>{shortName(m.name)}</SelectItem>)}</SelectContent></Select>
                   </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+        </>}
+        {selectedId && orders?.find(o => o.id===selectedId) && <OrderDetails order={orders.find(o => o.id===selectedId) as TeamOrder} onClose={() => setSelectedId(null)} openFile={openFile} />}
       </div>
     </main>
   );
