@@ -18,3 +18,21 @@ export function financeSummary(orders: { payment_status: string; price?: unknown
   return { revenue, count: paid.length, average: paid.length ? revenue / paid.length : 0 };
 }
 export const formatEur = (n: number) => `${n.toLocaleString('lt-LT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u00a0/g, ' ')} €`;
+export type FinancePeriod = 'month' | 'last_month' | 'quarter' | 'year' | 'all';
+export const FINANCE_PERIODS: { id: FinancePeriod; label: string }[] = [
+  { id: 'month', label: 'Šis mėnuo' }, { id: 'last_month', label: 'Praėjęs mėnuo' }, { id: 'quarter', label: 'Šis ketvirtis' }, { id: 'year', label: 'Šie metai' }, { id: 'all', label: 'Visas laikas' },
+];
+export function periodRange(p: FinancePeriod, now = new Date()): [Date, Date] | null {
+  const y = now.getFullYear(), m = now.getMonth();
+  if (p === 'month') return [new Date(y, m, 1), new Date(y, m + 1, 1)];
+  if (p === 'last_month') return [new Date(y, m - 1, 1), new Date(y, m, 1)];
+  if (p === 'quarter') { const q = m - (m % 3); return [new Date(y, q, 1), new Date(y, q + 3, 1)]; }
+  if (p === 'year') return [new Date(y, 0, 1), new Date(y + 1, 0, 1)];
+  return null;
+}
+/** Paid orders are dated by paid_at, falling back to created_at. */
+export function inPeriod(o: { paid_at?: string | null; created_at: string }, p: FinancePeriod, now = new Date()) {
+  const r = periodRange(p, now); if (!r) return true;
+  const t = new Date(o.paid_at ?? o.created_at).getTime();
+  return t >= r[0].getTime() && t < r[1].getTime();
+}
