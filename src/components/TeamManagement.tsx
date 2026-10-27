@@ -73,7 +73,7 @@ function TeamManager() {
     <Dialog open={!!editing} onOpenChange={o => !o && setEditing(null)}>
       <DialogContent>
         <DialogHeader><DialogTitle>Redaguoti darbuotoją</DialogTitle></DialogHeader>
-        {editing && <form id="edit-member" className="space-y-4" onSubmit={e => { e.preventDefault(); if (!editing.name.trim()) return toast.error('Įveskite vardą.'); update.mutate(editing); }}>
+        {editing && <form id="edit-member" className="space-y-4" onSubmit={e => { e.preventDefault(); if (!editing.name.trim()) { toast.error('Įveskite vardą.'); return; } update.mutate(editing); }}>
           <div className="space-y-2"><Label htmlFor="edit-name">Vardas ir pavardė</Label><Input id="edit-name" maxLength={120} value={editing.name} onChange={e => setEditing({ ...editing, name: e.target.value })} /></div>
           <div className="space-y-2"><Label>El. paštas</Label><p className="text-sm text-muted-foreground">{editing.email}</p></div>
           <div className="space-y-2"><Label>Teisės</Label><RoleSelect value={editing.role} onChange={r => setEditing({ ...editing, role: r })} label="Teisės" /></div>
