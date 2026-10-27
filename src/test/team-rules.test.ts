@@ -14,3 +14,17 @@ describe('finance', () => {
   });
   it('formats euros', () => expect(fe2(248)).toBe('248,00 €'));
 });
+
+import { inPeriod } from '@/lib/team-rules';
+describe('finance periods', () => {
+  const now = new Date(2026, 9, 27);
+  it('this month uses paid_at', () => {
+    expect(inPeriod({ created_at: new Date(2026, 8, 30).toISOString(), paid_at: new Date(2026, 9, 2).toISOString() }, 'month', now)).toBe(true);
+    expect(inPeriod({ created_at: new Date(2026, 8, 30).toISOString() }, 'month', now)).toBe(false);
+  });
+  it('last month and quarter', () => {
+    expect(inPeriod({ created_at: new Date(2026, 8, 15).toISOString() }, 'last_month', now)).toBe(true);
+    expect(inPeriod({ created_at: new Date(2026, 8, 15).toISOString() }, 'quarter', now)).toBe(false);
+    expect(inPeriod({ created_at: new Date(2020, 0, 1).toISOString() }, 'all', now)).toBe(true);
+  });
+});
