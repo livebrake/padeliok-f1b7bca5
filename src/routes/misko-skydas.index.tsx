@@ -5,7 +5,7 @@ import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { matchesOrderQuery } from "@/lib/order-search";
-import { WORK_STATUSES, canManageTeam, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
+import { WORK_STATUSES, canManageTeam, financeSummary, formatEur, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
 import { TeamManagement } from '@/components/TeamManagement';
 import { OrderDetails } from '@/components/OrderDetails';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -20,13 +20,18 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 
 const STATUSES = [
-  { id: "Naujas", label: "Naujas", variant: "default" },
-  { id: "Vykdoma", label: "Vykdoma", variant: "outline" },
-  { id: "Atlikta", label: "Atlikta", variant: "secondary" },
-  { id: "Atšaukta", label: "Atšaukta", variant: "destructive" },
+  { id: "Naujas", label: "Naujas", cls: "border-transparent bg-destructive text-destructive-foreground" },
+  { id: "Vykdoma", label: "Vykdoma", cls: "border-transparent bg-warning text-warning-foreground" },
+  { id: "Atlikta", label: "Atlikta", cls: "border-transparent bg-success text-success-foreground" },
+  { id: "Atšaukta", label: "Atšaukta", cls: "border-transparent bg-closed text-closed-foreground" },
 ] as const;
+const PAY_CLS: Record<string, string> = {
+  "Apmokėta": "border-transparent bg-success/15 text-success",
+  "Laukia apmokėjimo": "border-transparent bg-muted text-muted-foreground",
+  "Atšaukta": "border-transparent bg-destructive/15 text-destructive",
+};
 const label = (s: string) => STATUSES.find((x) => x.id === s)?.label ?? s;
-const variant = (s: string) => STATUSES.find((x) => x.id === s)?.variant ?? "outline";
+const statusCls = (s: string) => STATUSES.find((x) => x.id === s)?.cls ?? "";
 const isCo = (t: string) => t === "company" || t === "juridinis";
 
 type SortKey = "created_at" | "full_name" | "phone" | "plan_name";
@@ -249,7 +254,7 @@ function Dashboard() {
 
       <div className="mx-auto max-w-7xl space-y-4 px-4 py-6">
         <Tabs value={manager ? view : 'orders'} onValueChange={setView}><TabsList><TabsTrigger value="orders">Užsakymai</TabsTrigger>{manager && <><TabsTrigger value="finance">Finansai</TabsTrigger><TabsTrigger value="team">Komanda</TabsTrigger><TabsTrigger value="settings">Nustatymai</TabsTrigger></>}</TabsList></Tabs>
-        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><h2 className="text-xl font-bold">Finansai</h2><dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Apmokėta</dt><dd className="text-3xl font-bold">{(orders ?? []).filter(o => paymentLabel(o.payment_status)==='Apmokėta').reduce((sum,o)=>sum+(o.price ?? 0),0)} €</dd></div><div><dt className="text-muted-foreground">Laukia apmokėjimo</dt><dd className="text-3xl font-bold">{(orders ?? []).filter(o => paymentLabel(o.payment_status)==='Laukia apmokėjimo').reduce((sum,o)=>sum+(o.price ?? 0),0)} €</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{(orders ?? []).filter(o => paymentLabel(o.payment_status)==='Apmokėta').length}</dd></div></dl></section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p></section> : <>
+        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><h2 className="text-xl font-bold">Finansai</h2>{(() => { const f = financeSummary(orders ?? []); return <dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Bendros pajamos</dt><dd className="text-3xl font-bold">{formatEur(f.revenue)}</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{f.count}</dd></div><div><dt className="text-muted-foreground">Vidutinė užsakymo vertė</dt><dd className="text-3xl font-bold">{formatEur(f.average)}</dd></div></dl>; })()}</section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p></section> : <>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="flex-wrap h-auto">
@@ -352,13 +357,13 @@ function Dashboard() {
                     </div>
                   </TableCell>
                   <TableCell>
-                    <Badge variant={paymentLabel(o.payment_status) === 'Apmokėta' ? 'secondary' : 'outline'}>{paymentLabel(o.payment_status)}</Badge>
+                    <Badge className={PAY_CLS[paymentLabel(o.payment_status)]}>{paymentLabel(o.payment_status)}</Badge>
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
                       <DropdownMenuTrigger asChild>
                         <Button variant="ghost" size="sm" className="inline-flex items-center gap-1" disabled={update.isPending} aria-label={`Būsena: ${o.order_number}`}>
-                          <Badge variant={variant(o.status)}>{label(o.status)}</Badge>
+                          <Badge className={statusCls(o.status)}>{label(o.status)}</Badge>
                           <ChevronDown className="h-3 w-3 text-muted-foreground" />
                         </Button>
                       </DropdownMenuTrigger>
@@ -368,8 +373,7 @@ function Dashboard() {
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
-                    {o.assigned_member_id && <Badge variant="outline" className="ml-1">{shortName(members?.find(m => m.id === o.assigned_member_id)?.name ?? 'Darbuotojas')}</Badge>}
-                    <Select value={o.assigned_member_id ?? 'none'} onValueChange={member => assign.mutate({ id: o.id, member })} disabled={assign.isPending}><SelectTrigger className="mt-2 min-w-36" aria-label={`Priskirti: ${o.order_number}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Nepriskirta</SelectItem>{members?.filter(m => m.is_active || m.id===o.assigned_member_id).map(m => <SelectItem disabled={!m.is_active} key={m.id} value={m.id}>{shortName(m.name)}</SelectItem>)}</SelectContent></Select>
+                                        <Select value={o.assigned_member_id ?? 'none'} onValueChange={member => assign.mutate({ id: o.id, member })} disabled={assign.isPending}><SelectTrigger className={`mt-2 h-7 min-w-36 rounded-full px-3 text-xs ${o.assigned_member_id ? "border-transparent bg-primary text-primary-foreground" : "border-dashed bg-transparent text-muted-foreground"}`} aria-label={`Priskirti: ${o.order_number}`}><SelectValue /></SelectTrigger><SelectContent><SelectItem value="none">Nepriskirta</SelectItem>{members?.filter(m => m.is_active || m.id===o.assigned_member_id).map(m => <SelectItem disabled={!m.is_active} key={m.id} value={m.id}>{shortName(m.name)}</SelectItem>)}</SelectContent></Select>
                   </TableCell>
                 </TableRow>
               ))}
