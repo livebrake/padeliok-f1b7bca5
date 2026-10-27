@@ -17,6 +17,7 @@ import { Route as PaslauguTeikimoSutartisRouteImport } from './routes/paslaugu-t
 import { Route as PrivatumoTaisyklesRouteImport } from './routes/privatumo-taisykles'
 import { Route as MiskoSkydasIndexRouteImport } from './routes/misko-skydas.index'
 import { Route as MiskoSkydasJungtisRouteImport } from './routes/misko-skydas.jungtis'
+import { Route as MiskoSkydasPakvietimasRouteImport } from './routes/misko-skydas.pakvietimas'
 import { Route as ApiPublicMontonioRouteImport } from './routes/api/public/montonio'
 
 const IndexRoute = IndexRouteImport.update({
@@ -59,6 +60,11 @@ const MiskoSkydasJungtisRoute = MiskoSkydasJungtisRouteImport.update({
   path: '/misko-skydas/jungtis',
   getParentRoute: () => rootRouteImport,
 } as any)
+const MiskoSkydasPakvietimasRoute = MiskoSkydasPakvietimasRouteImport.update({
+  id: '/misko-skydas/pakvietimas',
+  path: '/misko-skydas/pakvietimas',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ApiPublicMontonioRoute = ApiPublicMontonioRouteImport.update({
   id: '/api/public/montonio',
   path: '/api/public/montonio',
@@ -73,6 +79,7 @@ export interface FileRoutesByFullPath {
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
+  '/misko-skydas/pakvietimas': typeof MiskoSkydasPakvietimasRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
   '/api/public/montonio': typeof ApiPublicMontonioRoute
 }
@@ -84,6 +91,7 @@ export interface FileRoutesByTo {
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
+  '/misko-skydas/pakvietimas': typeof MiskoSkydasPakvietimasRoute
   '/misko-skydas': typeof MiskoSkydasIndexRoute
   '/api/public/montonio': typeof ApiPublicMontonioRoute
 }
@@ -96,6 +104,7 @@ export interface FileRoutesById {
   '/paslaugu-teikimo-sutartis': typeof PaslauguTeikimoSutartisRoute
   '/privatumo-taisykles': typeof PrivatumoTaisyklesRoute
   '/misko-skydas/jungtis': typeof MiskoSkydasJungtisRoute
+  '/misko-skydas/pakvietimas': typeof MiskoSkydasPakvietimasRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
   '/api/public/montonio': typeof ApiPublicMontonioRoute
 }
@@ -109,6 +118,7 @@ export interface FileRouteTypes {
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
+    | '/misko-skydas/pakvietimas'
     | '/misko-skydas/'
     | '/api/public/montonio'
   fileRoutesByTo: FileRoutesByTo
@@ -120,6 +130,7 @@ export interface FileRouteTypes {
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
+    | '/misko-skydas/pakvietimas'
     | '/misko-skydas'
     | '/api/public/montonio'
   id:
@@ -131,6 +142,7 @@ export interface FileRouteTypes {
     | '/paslaugu-teikimo-sutartis'
     | '/privatumo-taisykles'
     | '/misko-skydas/jungtis'
+    | '/misko-skydas/pakvietimas'
     | '/misko-skydas/'
     | '/api/public/montonio'
   fileRoutesById: FileRoutesById
@@ -143,6 +155,7 @@ export interface RootRouteChildren {
   PaslauguTeikimoSutartisRoute: typeof PaslauguTeikimoSutartisRoute
   PrivatumoTaisyklesRoute: typeof PrivatumoTaisyklesRoute
   MiskoSkydasJungtisRoute: typeof MiskoSkydasJungtisRoute
+  MiskoSkydasPakvietimasRoute: typeof MiskoSkydasPakvietimasRoute
   MiskoSkydasIndexRoute: typeof MiskoSkydasIndexRoute
   ApiPublicMontonioRoute: typeof ApiPublicMontonioRoute
 }
@@ -205,6 +218,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof MiskoSkydasJungtisRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/misko-skydas/pakvietimas': {
+      id: '/misko-skydas/pakvietimas'
+      path: '/misko-skydas/pakvietimas'
+      fullPath: '/misko-skydas/pakvietimas'
+      preLoaderRoute: typeof MiskoSkydasPakvietimasRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/api/public/montonio': {
       id: '/api/public/montonio'
       path: '/api/public/montonio'
@@ -223,6 +243,7 @@ const rootRouteChildren: RootRouteChildren = {
   PaslauguTeikimoSutartisRoute: PaslauguTeikimoSutartisRoute,
   PrivatumoTaisyklesRoute: PrivatumoTaisyklesRoute,
   MiskoSkydasJungtisRoute: MiskoSkydasJungtisRoute,
+  MiskoSkydasPakvietimasRoute: MiskoSkydasPakvietimasRoute,
   MiskoSkydasIndexRoute: MiskoSkydasIndexRoute,
   ApiPublicMontonioRoute: ApiPublicMontonioRoute,
 }

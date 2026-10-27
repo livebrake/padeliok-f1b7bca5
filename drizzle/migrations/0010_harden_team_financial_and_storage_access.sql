@@ -1,0 +1,6 @@
+REVOKE SELECT ON public.orders FROM authenticated;
+CREATE FUNCTION public.team_order_exists(order_text text) RETURNS boolean LANGUAGE sql STABLE SECURITY DEFINER SET search_path=public AS $$ SELECT public.team_access() IS NOT NULL AND EXISTS(SELECT 1 FROM public.orders WHERE id::text=order_text) $$;
+REVOKE ALL ON FUNCTION public.team_order_exists(text) FROM PUBLIC; GRANT EXECUTE ON FUNCTION public.team_order_exists(text) TO authenticated;
+ALTER POLICY "Team uploads responses" ON storage.objects WITH CHECK(bucket_id='order-documents' AND public.team_access() IS NOT NULL AND (storage.foldername(name))[1]='responses' AND public.team_order_exists((storage.foldername(name))[2]));
+CREATE FUNCTION public.create_display_profile() RETURNS trigger LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $$ BEGIN INSERT INTO public.profiles(id,full_name) VALUES(NEW.id,coalesce(NEW.raw_user_meta_data->>'full_name','')) ON CONFLICT DO NOTHING; RETURN NEW; END $$;
+CREATE TRIGGER create_display_profile AFTER INSERT ON auth.users FOR EACH ROW EXECUTE FUNCTION public.create_display_profile();

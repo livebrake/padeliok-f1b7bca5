@@ -269,6 +269,7 @@ export type Database = {
       }
       next_order_number: { Args: never; Returns: string }
       team_access: { Args: never; Returns: string }
+      team_order_exists: { Args: { order_text: string }; Returns: boolean }
       team_orders: { Args: never; Returns: Json }
     }
     Enums: {
