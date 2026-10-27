@@ -1,0 +1,1 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS montonio_uuid text, ADD COLUMN IF NOT EXISTS payment_method text, ADD COLUMN IF NOT EXISTS paid_at timestamptz, ADD COLUMN IF NOT EXISTS payment_email_sent_at timestamptz;

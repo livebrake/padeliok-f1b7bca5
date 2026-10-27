@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 import { validateCheckout, normalizePhone, FILE_EXT } from "@/lib/order-validation";
 
 const PRICES: Record<string, { name: string; price: number }> = {
@@ -36,11 +37,12 @@ const payload = z.object({
   noVat: z.boolean().default(false),
   agreement: z.string().max(5).default("0"),
   filePaths: z.array(z.string().max(300)).max(5).default([]),
+  paymentMethod: z.string().trim().min(1).max(40),
 });
 
 export type SubmitResult =
-  | { ok: true; orderNumber: string }
-  | { ok: false; code: "validation" | "storage" | "database"; message: string };
+  | { ok: true; orderNumber: string; paymentUrl: string }
+  | { ok: false; code: "validation" | "storage" | "database" | "payment"; message: string };
 
 const invalid = (message: string): SubmitResult => ({ ok: false, code: "validation", message });
 
@@ -112,7 +114,8 @@ export const submitOrder = createServerFn({ method: "POST" })
       plan_name: plan.name,
       price: plan.price,
       status: "Naujas",
-      payment_status: "Laukia apmokėjimo",
+      payment_status: "PENDING",
+      payment_method: v.paymentMethod,
       client_type: isCo ? "company" : "private",
       company_name: company?.company_name ?? null,
       company_code: company?.company_code ?? null,
@@ -128,15 +131,19 @@ export const submitOrder = createServerFn({ method: "POST" })
       return { ok: false, code: "database", message: `Nepavyko išsaugoti užsakymo: ${error.message}` };
     }
 
-    const fileLinks: { name: string; url: string }[] = [];
-    for (const p of finalPaths) {
-      const { data: s } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(p, 60 * 60 * 24 * 7);
-      if (s?.signedUrl) fileLinks.push({ name: p.split("/").pop()!.slice(9), url: s.signedUrl });
+    // Emails are sent only after Montonio confirms the payment (see montonio.server.ts).
+    const [firstName, ...rest] = (fullName || company?.company_name || "Klientas").split(/\s+/);
+    try {
+      const { createPayment } = await import("@/lib/montonio.server");
+      const pay = await createPayment({
+        orderNumber, price: plan.price, planName: plan.name, method: v.paymentMethod,
+        firstName: firstName!, lastName: rest.join(" ") || firstName!, email: v.email, phone,
+        origin: new URL(getRequest().url).origin,
+      });
+      await supabaseAdmin.from("orders").update({ montonio_uuid: pay.uuid }).eq("order_number", orderNumber);
+      return { ok: true, orderNumber, paymentUrl: pay.paymentUrl };
+    } catch (e) {
+      console.error("montonio create failed", e);
+      return { ok: false, code: "payment", message: `Nepavyko inicijuoti mokėjimo: ${e instanceof Error ? e.message : "nežinoma klaida"}` };
     }
-    const { sendOrderEmails } = await import("@/lib/order-emails.server");
-    await sendOrderEmails({
-      orderNumber, isCompany: isCo, fullName, email: v.email, phone,
-      planName: plan.name, price: plan.price, projectGoal: v.projectGoal, comment, company, fileLinks,
-    });
-    return { ok: true, orderNumber };
   });

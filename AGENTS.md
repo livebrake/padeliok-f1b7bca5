@@ -11,3 +11,4 @@
 
 - Keep checkout eligibility in a browser-safe shared validation module used by the form and submission handler so required-field and agreement rules cannot diverge.
 - Classify preview hosts in the shared browser-safe preview-host module using the actual request URL inside gate handlers; production build flags cannot distinguish built previews from published sites, and admin authentication must remain independent.
+- Mark orders paid only from a Montonio token whose HS256 signature, access key and amount are verified server-side (return page and webhook share one handler); emails are claimed via payment_email_sent_at so they send once.
