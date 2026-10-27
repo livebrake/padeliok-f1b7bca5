@@ -78,6 +78,13 @@
       "when": 1793118479310,
       "tag": "0010_harden_team_financial_and_storage_access",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1793118584696,
+      "tag": "0011_enforce_active_team_document_access",
+      "breakpoints": true
     }
   ]
 }

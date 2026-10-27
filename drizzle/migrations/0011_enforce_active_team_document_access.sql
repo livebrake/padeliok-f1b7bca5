@@ -1,0 +1,1 @@
+ALTER POLICY "Admins read order documents" ON storage.objects USING(bucket_id='order-documents' AND public.team_access() IS NOT NULL);
