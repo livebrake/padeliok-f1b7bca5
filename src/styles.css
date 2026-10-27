@@ -90,6 +90,10 @@
   --color-chart-5: var(--chart-5);
   --color-success: var(--success);
   --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-closed: var(--closed);
+  --color-closed-foreground: var(--closed-foreground);
   --color-blueprint: var(--blueprint);
   --font-display: "Satoshi", sans-serif;
   --font-sans: "Satoshi", sans-serif;
@@ -124,6 +128,10 @@
   --destructive-foreground: oklch(0.98 0 0);
   --success: oklch(0.6 0.14 152);
   --success-foreground: oklch(0.99 0 0);
+  --warning: oklch(0.75 0.16 65);
+  --warning-foreground: oklch(0.22 0.04 60);
+  --closed: oklch(0.38 0.02 250);
+  --closed-foreground: oklch(0.98 0 0);
   --blueprint: oklch(0.38 0.07 245 / 0.08);
   --border: oklch(0.9 0.012 245);
   --input: oklch(0.88 0.015 245);
