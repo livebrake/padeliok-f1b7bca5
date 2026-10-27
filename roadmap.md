@@ -5,4 +5,5 @@
 - [x] Admin search matches order number in any form (PAD-1004, #PAD-1004, pad 1004, 1004, 01004) plus name, company, email and phone; 18 search tests passed, verified live as admin.
 - [x] Open the main page automatically on recognized preview hosts while preserving the published password gate and admin authentication; 22 production-mode gate tests passed, main page and reload verified without cookies, signed-out admin remains denied.- [x] Montonio sandbox: bank/card choice in order summary, PENDING order → redirect to bank, /order-success verifies signed token → PAID + emails once, /order-cancel retry; verified redirect, paid, cancelled and forged-token cases.
 - [ ] Invoices after payment — waiting for the user's separate request.
-- [ ] Team roles, management, assignments, response files and automatic audit history; verify administrator and employee access.
+- [x] Team roles, management, assignments, response files and automatic audit history; supervisor and employee flows verified, financial/payment escalation and inactive access denied, last-super-admin protected; 61 tests passed.
+- [ ] Verify delivery and acceptance of a real employee invitation — requires a real recipient to accept the email; invitation sending is implemented but not exercised against a real mailbox.
