@@ -19,6 +19,6 @@ export const confirmPayment = createServerFn({ method: "POST" })
       return { ok: true as const, ...(await processOrderToken(data.token)) };
     } catch (e) {
       console.error("confirm payment failed", e);
-      return { ok: false as const, message: e instanceof Error ? e.message : "Nepavyko patikrinti mokėjimo." };
+      return { ok: false as const, message: "Nepavyko patikrinti mokėjimo. Jei pinigai nuskaičiuoti, susisiekite info@padeliok.lt." };
     }
   });
