@@ -48,7 +48,8 @@ export async function createPayment(o: {
     accessKey,
     merchantReference: o.orderNumber,
     returnUrl: `${o.origin}/order-success`,
-    notificationUrl: `${o.origin}/api/public/montonio`,
+    // Montonio rejects local URLs; the return page also confirms payment, so webhook is optional locally.
+    ...(/localhost|127\.0\.0\.1/.test(o.origin) ? {} : { notificationUrl: `${o.origin}/api/public/montonio` }),
     currency: "EUR",
     grandTotal: o.price,
     locale: "lt",

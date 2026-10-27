@@ -800,7 +800,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
                   }}
                   className={`flex h-12 items-center justify-center rounded-md border bg-card p-2 transition ${
                     method === m.code ? "border-primary ring-2 ring-primary" : errors["paymentMethod"] ? "border-destructive" : "border-border hover:border-primary/50"
-                  } ${m.kind === "card" ? "col-span-3 gap-2 text-xs font-medium" : ""}`}
+                  } ${m.kind === "card" ? "col-span-3 h-auto flex-col gap-1 py-2 text-xs font-medium" : ""}`}
                 >
                   {m.logoUrl && <img src={m.logoUrl} alt="" className="max-h-7 max-w-full object-contain" loading="lazy" />}
                   {m.kind === "card" && <span>{m.name}</span>}
