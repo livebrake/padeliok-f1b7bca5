@@ -57,6 +57,13 @@
       "when": 1792682445350,
       "tag": "0007_anon_order_document_uploads",
       "breakpoints": true
+    },
+    {
+      "idx": 8,
+      "version": "7",
+      "when": 1793110016352,
+      "tag": "0008_montonio_payments",
+      "breakpoints": true
     }
   ]
 }
