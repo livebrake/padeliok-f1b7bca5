@@ -16,6 +16,7 @@ import { reportLovableError } from "../lib/lovable-error-reporting";
 import { Toaster } from "@/components/ui/sonner";
 import { redirect } from "@tanstack/react-router";
 import { getGateStatus } from "@/lib/gate.functions";
+import { withRequestTimeout } from '@/lib/request-timeout';
 
 function NotFoundComponent() {
   return (
@@ -82,7 +83,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     const path = location.pathname;
     if (path === "/greitai" || path.startsWith("/misko-skydas") || path.startsWith("/order-")) return;
     // Fail closed: if the gate check cannot run, show the locked page instead of crashing.
-    const unlocked = await getGateStatus().then((r) => r.unlocked, () => false);
+    const unlocked = await withRequestTimeout(getGateStatus()).then((r) => r.unlocked, () => false);
     if (!unlocked) throw redirect({ to: "/greitai" });
   },
   head: () => ({

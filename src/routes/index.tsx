@@ -32,6 +32,7 @@ import {
 import { toast } from "sonner";
 import { submitOrder } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
+import { withRequestTimeout } from '@/lib/request-timeout';
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC =
@@ -131,9 +132,13 @@ function usePlans(): Plan[] {
   const [prices, setPrices] = useState<Record<string, number>>({});
   useEffect(() => {
     // Default prices stay visible until (and unless) the database answers.
-    Promise.resolve(supabase.from("plan_prices").select("plan_key, price")).then(({ data }) => {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), 8000);
+    Promise.resolve(supabase.from("plan_prices").select("plan_key, price").abortSignal(controller.signal)).then(({ data }) => {
+      if (controller.signal.aborted) return;
       if (data) setPrices(Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, Number(r.price)])));
-    }, () => undefined);
+    }, () => undefined).finally(() => clearTimeout(timer));
+    return () => { controller.abort(); clearTimeout(timer); };
   }, []);
   return PLANS.map((p) => ({ ...p, price: prices[p.id] ?? p.price }));
 }
@@ -176,7 +181,7 @@ function Index() {
         className="relative border-b border-border bg-cover bg-center"
         style={{ backgroundImage: `url(/hero-bg.png)` }}
       >
-        <div className="absolute inset-0 bg-background/75" />
+        <div className="pointer-events-none absolute inset-0 bg-background/75" aria-hidden="true" />
         <div className="relative mx-auto max-w-6xl px-5 py-20 md:py-28">
           <div className="mb-5 flex flex-wrap items-center gap-2">
             <p className="inline-flex items-center gap-2 rounded-full border border-border bg-card px-3 py-1 font-mono text-xs text-muted-foreground">
@@ -358,6 +363,9 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
       onClick={onClose}
     >
       <div
+        role="dialog"
+        aria-modal="true"
+        aria-label="Užsakymo langas"
         className="relative my-auto w-full max-w-4xl rounded-lg bg-card shadow-2xl animate-in fade-in zoom-in-95"
         onClick={(e) => e.stopPropagation()}
       >
@@ -391,10 +399,17 @@ function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; se
   const [methods, setMethods] = useState<{ code: string; name: string; logoUrl: string; kind: string }[] | null>(null);
   const [methodsError, setMethodsError] = useState<string | null>(null);
   useEffect(() => {
-    getPaymentMethods().then((r) => {
+    let active = true;
+    withRequestTimeout(getPaymentMethods()).then((r) => {
+      if (!active) return;
       setMethods(r.methods);
       setMethodsError(r.error);
+    }).catch(() => {
+      if (!active) return;
+      setMethods([]);
+      setMethodsError('Nepavyko įkelti mokėjimo būdų. Bandykite dar kartą.');
     });
+    return () => { active = false; };
   }, []);
   const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];

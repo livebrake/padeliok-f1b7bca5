@@ -6,9 +6,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { withRequestTimeout } from '@/lib/request-timeout';
 
 export const Route = createFileRoute("/misko-skydas/jungtis")({
-  ssr: false,
   head: () => ({
     meta: [
       { title: "Padeliok · Komandos prisijungimas" },
@@ -21,9 +21,15 @@ export const Route = createFileRoute("/misko-skydas/jungtis")({
     ],
   }),
   component: Login,
+  pendingComponent: Login,
+  errorComponent: LoginFallback,
 });
 
-function Login() {
+function LoginFallback() {
+  return <Login warning="Nepavyko užbaigti patikros. Galite bandyti prisijungti dar kartą." />;
+}
+
+function Login({ warning }: { warning?: string } = {}) {
   const navigate = useNavigate();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -31,21 +37,25 @@ function Login() {
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
+    if (busy) return;
     setBusy(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    try {
+    const { data, error } = await withRequestTimeout(supabase.auth.signInWithPassword({ email, password }), 15000);
     if (error || !data.user) {
-      setBusy(false);
       toast.error("Neteisingas el. paštas arba slaptažodis.");
       return;
     }
-    const { data: isAdmin } = await supabase.rpc('team_access');
-    setBusy(false);
+    const { data: isAdmin, error: roleError } = await withRequestTimeout(supabase.rpc('team_access'));
+    if (roleError) throw roleError;
     if (!isAdmin) {
       await supabase.auth.signOut();
-      navigate({ to: "/", replace: true });
+      toast.error('Ši paskyra neturi prieigos prie komandos valdymo.');
       return;
     }
-    navigate({ to: "/misko-skydas", replace: true });
+    await navigate({ to: "/misko-skydas", replace: true });
+    } catch {
+      toast.error('Nepavyko prisijungti. Patikrinkite ryšį ir bandykite dar kartą.');
+    } finally { setBusy(false); }
   }
 
   return (
@@ -54,6 +64,7 @@ function Login() {
         <div>
           <h1 className="text-xl font-bold">Komandos prisijungimas</h1>
           <p className="text-sm text-muted-foreground">Įveskite savo prisijungimo duomenis.</p>
+          {warning && <p role="alert" className="mt-2 text-sm text-destructive">{warning}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">El. paštas</Label>

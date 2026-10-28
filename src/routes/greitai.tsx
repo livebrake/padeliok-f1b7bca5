@@ -5,11 +5,12 @@ import { Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getGateStatus, unlockSite } from "@/lib/gate.functions";
+import { withRequestTimeout } from '@/lib/request-timeout';
 
 export const Route = createFileRoute("/greitai")({
   beforeLoad: async () => {
     // If the check cannot run, stay on the locked page rather than failing.
-    const preview = await getGateStatus().then((r) => r.preview, () => false);
+    const preview = await withRequestTimeout(getGateStatus()).then((r) => r.preview, () => false);
     if (preview) throw redirect({ to: "/" });
   },
   head: () => ({
