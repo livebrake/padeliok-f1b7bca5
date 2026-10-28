@@ -7,3 +7,4 @@
 - [ ] Invoices after payment — waiting for the user's separate request.
 - [x] Team roles, management, assignments, response files and automatic audit history; supervisor and employee flows verified, financial/payment escalation and inactive access denied, last-super-admin protected; 61 tests passed.
 - [ ] Verify delivery and acceptance of a real employee invitation — requires a real recipient to accept the email; invitation sending is implemented but not exercised against a real mailbox.
+- [ ] Localize team validation and alerts; add supervisor-only active-member password recovery and verify password setup.
