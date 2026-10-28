@@ -30,6 +30,8 @@ export async function loadInvoiceFonts(origin = "") {
 
 export async function renderInvoicePdf(inv: Invoice, fonts: { regular: Uint8Array; bold: Uint8Array }) {
   const doc = await PDFDocument.create();
+  doc.setCreationDate(new Date(inv.issue_date));
+  doc.setModificationDate(new Date(inv.issue_date));
   doc.registerFontkit(fontkit);
   doc.setTitle(`Sąskaita faktūra ${inv.invoice_number}`);
   const f = await doc.embedFont(fonts.regular, { subset: true });
