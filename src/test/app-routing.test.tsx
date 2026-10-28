@@ -18,7 +18,8 @@ function renderAt(path: string) {
     context: { queryClient },
     history: createMemoryHistory({ initialEntries: [path] }),
   });
-  return render(<RouterProvider router={router} />);
+  // The root shell renders <html>, so mount on the document like the real app.
+  return render(<RouterProvider router={router} />, { container: document as unknown as HTMLElement });
 }
 
 afterEach(() => {
