@@ -19,6 +19,7 @@ export function teamAuthMessage(error: unknown, fallback = 'Veiksmo atlikti nepa
   const message = value.message ?? '';
   if (['email_exists', 'user_already_exists'].includes(code) || /already.*(registered|exists)/i.test(message)) return 'Vartotojas su šiuo el. paštu jau užregistruotas.';
   if (code === 'email_address_invalid' || /invalid email|invalid.*email.*address/i.test(message)) return 'Neteisingas el. pašto adreso formatas.';
+  if (/email address is not allowed|email_address_not_authorized/i.test(code + message)) return 'Šiuo el. pašto adresu laiškų siųsti negalima. Patikrinkite adresą ir jo domeną.';
   if (/rate_limit|too many requests|rate limit/i.test(code + message)) return 'Per daug bandymų. Palaukite ir bandykite dar kartą.';
   if (/same_password|same.*password/i.test(code + message)) return 'Naujas slaptažodis turi skirtis nuo dabartinio.';
   if (/weak_password|password.*(weak|short)/i.test(code + message)) return 'Slaptažodis per silpnas. Naudokite bent 12 simbolių, raides ir skaičius.';

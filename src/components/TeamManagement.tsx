@@ -55,12 +55,12 @@ function TeamManager() {
   return <section className="space-y-6 py-2">
     <h2 className="text-xl font-bold">Komanda</h2>
     <div className="rounded-xl border bg-card p-4 space-y-3">
-      <div className={`${COLS} hidden md:grid text-sm font-medium text-muted-foreground`}><span>Vardas ir pavardė</span><span>El. paštas</span><span>Teisės</span><span>Paskyra</span><span /></div>
+      <div className={`${COLS} hidden lg:grid text-sm font-medium text-muted-foreground`}><span>Vardas ir pavardė</span><span>El. paštas</span><span>Teisės</span><span>Paskyra</span><span /></div>
       <form className={COLS} noValidate onSubmit={e => { e.preventDefault(); const result = invitationSchema.safeParse({ name, email, role, origin: window.location.origin }); if (!result.success) { const errors: Record<string, string> = {}; for (const issue of result.error.issues) { const key = String(issue.path[0]); errors[key] ??= issue.message; } setFieldErrors(errors); toast.error(teamAuthMessage(result.error)); return; } setFieldErrors({}); add.mutate(); }}>
         <div><Label htmlFor="team-name" className="lg:sr-only">Vardas ir pavardė</Label><Input id="team-name" placeholder="Vardas ir pavardė" required maxLength={120} aria-invalid={!!fieldErrors.name} aria-describedby={fieldErrors.name ? 'team-name-error' : undefined} value={name} onChange={e => setName(e.target.value)} />{fieldErrors.name && <p id="team-name-error" className="mt-1 text-xs text-destructive">{fieldErrors.name}</p>}</div>
         <div><Label htmlFor="team-email" className="lg:sr-only">El. paštas</Label><Input id="team-email" placeholder="vardas@padeliok.lt" type="email" required aria-invalid={!!fieldErrors.email} aria-describedby={fieldErrors.email ? 'team-email-error' : undefined} value={email} onChange={e => setEmail(e.target.value)} />{fieldErrors.email && <p id="team-email-error" className="mt-1 text-xs text-destructive">{fieldErrors.email}</p>}</div>
         <RoleSelect value={role} onChange={setRole} label="Naujo darbuotojo teisės" />
-        <span className="hidden md:block text-xs text-muted-foreground">Nauja</span>
+        <span className="hidden lg:block text-xs text-muted-foreground">Nauja</span>
         <Button disabled={add.isPending} type="submit"><UserPlus className="h-4 w-4 mr-2" />{add.isPending ? 'Siunčiama…' : 'Pakviesti'}</Button>
       </form>
       <div className="border-t" />
