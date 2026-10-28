@@ -27,12 +27,17 @@ export function InvoiceSettings() {
   const num = Number(f.last_number);
   const numValid = Number.isInteger(num) && num >= 0 && /^\d+$/.test(f.last_number);
 
+  const validate = () => {
+    const err = invoiceSettingsError(f);
+    if (err) { toast.error(err); return false; }
+    if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) { toast.error('Serija gali būti tik didžiosios raidės ir skaičiai.'); return false; }
+    return true;
+  };
   const save = async (): Promise<void> => {
-    if (!numValid) return void toast.error('Paskutinis numeris turi būti sveikasis skaičius (0 ar daugiau).');
-    if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) return void toast.error('Serija gali būti tik didžiosios raidės ir skaičiai.');
+    if (!validate()) return;
     setSaving(true);
     const { data, error } = await supabase.from('invoice_settings').update({
-      series_prefix: f.series_prefix, company_name: f.company_name.trim(), company_code: f.company_code.trim(), vat_code: f.vat_code.trim() || null,
+      series_prefix: f.series_prefix, company_name: f.company_name.trim(), company_code: f.company_code.trim(), vat_code: f.is_vat_payer ? f.vat_code.replace(/\s+/g, '').toUpperCase() : null,
       company_address: f.company_address.trim(), bank_name: f.bank_name.trim(), bank_iban: f.bank_iban.replace(/\s+/g, '').toUpperCase(), is_vat_payer: f.is_vat_payer, last_number: num,
     }).eq('id', true).select('last_number');
     setSaving(false);

@@ -360,11 +360,6 @@ function Dashboard() {
                   </TableCell>
                   <TableCell>
                     <div className="font-medium">{isCo(o.client_type) ? o.company_name : o.full_name}</div>
-                    {isCo(o.client_type) && (
-                      <div className="text-xs text-muted-foreground">
-                        Kodas {o.company_code}{o.vat_code ? ` · PVM ${o.vat_code}` : " · ne PVM mokėtojas"}
-                      </div>
-                    )}
                   </TableCell>
                   <TableCell><a className="text-sm underline-offset-2 hover:underline" href={`mailto:${o.email}`}>{o.email}</a></TableCell>
                   <TableCell className="whitespace-nowrap"><a className="text-sm" href={`tel:${o.phone}`}>{o.phone}</a></TableCell>
@@ -409,7 +404,8 @@ function Dashboard() {
           </Table>
         </div>
         </>}
-        {selectedId && orders?.find(o => o.id===selectedId) && <OrderDetails order={orders.find(o => o.id===selectedId) as TeamOrder} onClose={() => setSelectedId(null)} openFile={openFile} />}
+        {selectedId && orders?.find(o => o.id===selectedId) && <OrderDetails order={orders.find(o => o.id===selectedId) as TeamOrder} onClose={() => setSelectedId(null)} openFile={openFile}
+          invoice={manager && paymentLabel(orders.find(o => o.id===selectedId)!.payment_status) === 'Apmokėta' ? { busy: invoiceBusy === selectedId, download: () => downloadInvoice(selectedId) } : undefined} />}
       </div>
     </main>
   );
