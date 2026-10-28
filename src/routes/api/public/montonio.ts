@@ -10,7 +10,7 @@ export const Route = createFileRoute("/api/public/montonio")({
         if (!parsed.success) return new Response("Bad request", { status: 400 });
         try {
           const { processOrderToken } = await import("@/lib/montonio.server");
-          await processOrderToken(parsed.data.orderToken);
+          await processOrderToken(parsed.data.orderToken, new URL(request.url).origin);
           return new Response("ok");
         } catch (e) {
           console.error("montonio webhook rejected", e);

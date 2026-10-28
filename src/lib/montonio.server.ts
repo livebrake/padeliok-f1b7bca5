@@ -69,7 +69,7 @@ export async function createPayment(o: {
 export type OrderTokenResult = { orderNumber: string; status: string };
 
 /** Verifies a Montonio order token signature and, when PAID, marks the order paid and sends the confirmation once. */
-export async function processOrderToken(token: string): Promise<OrderTokenResult> {
+export async function processOrderToken(token: string, origin: string): Promise<OrderTokenResult> {
   const { accessKey, secret } = keys();
   const { payload } = await jwtVerify(token, secret, { algorithms: ["HS256"] });
   const p = payload as { accessKey?: string; merchantReference?: string; paymentStatus?: string; grandTotal?: number; uuid?: string };
@@ -98,13 +98,22 @@ export async function processOrderToken(token: string): Promise<OrderTokenResult
       const { data: s } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(fp, 60 * 60 * 24 * 7);
       if (s?.signedUrl) fileLinks.push({ name: fp.split("/").pop()!.slice(9), url: s.signedUrl });
     }
-    const isCo = order.client_type === "company";
+    // Invoice failure must never block payment confirmation; it can be regenerated from the admin panel.
+    let invoice: { filename: string; content: string } | null = null;
+    try {
+      const { data: inv, error } = await supabaseAdmin.rpc("issue_invoice", { order_uuid: order.id });
+      if (error || !inv) throw error ?? new Error("no invoice");
+      const { renderInvoicePdf, loadInvoiceFonts, toBase64 } = await import("@/lib/invoice-pdf");
+      const pdf = await renderInvoicePdf(inv, await loadInvoiceFonts(origin));
+      invoice = { filename: `${inv.invoice_number}.pdf`, content: toBase64(pdf) };
+    } catch (e) { console.error("invoice generation failed", e); }
+    const isCo = order.client_type === "company" || order.client_type === "juridinis";
     const { sendOrderEmails } = await import("@/lib/order-emails.server");
     await sendOrderEmails({
       orderNumber, isCompany: isCo, fullName: order.full_name ?? "", email: order.email, phone: order.phone,
       planName: order.plan_name, price: order.price, projectGoal: order.project_goal ?? "", comment: order.comment ?? "",
       company: isCo ? { company_name: order.company_name ?? "", company_code: order.company_code ?? "", company_address: order.company_address, vat_code: order.vat_code ?? "" } : null,
-      fileLinks,
+      fileLinks, invoice,
     });
   }
   return { orderNumber, status: "PAID" };

@@ -92,6 +92,13 @@
       "when": 1793190664949,
       "tag": "0012_plan_prices",
       "breakpoints": true
+    },
+    {
+      "idx": 13,
+      "version": "7",
+      "when": 1793191803184,
+      "tag": "0013_invoices",
+      "breakpoints": true
     }
   ]
 }

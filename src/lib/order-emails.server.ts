@@ -10,6 +10,7 @@ type OrderEmailData = {
   comment: string;
   company: { company_name: string; company_code: string; company_address: string | null; vat_code: string } | null;
   fileLinks: { name: string; url: string }[];
+  invoice?: { filename: string; content: string } | null;
 };
 
 const TEAM_EMAIL = "info@padeliok.lt";
@@ -101,6 +102,7 @@ export async function sendOrderEmails(d: OrderEmailData) {
         reply_to: TEAM_EMAIL,
         subject: `Jūsų užsakymas #${d.orderNumber} priimtas | padeliok.lt`,
         html: clientHtml(d),
+        ...(d.invoice ? { attachments: [d.invoice] } : {}),
       }),
     ]);
   } catch (e) {

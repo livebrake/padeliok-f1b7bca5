@@ -14,24 +14,24 @@ export function PlanPricesSettings() {
 
   useEffect(() => {
     supabase.from("plan_prices").select("plan_key, name, price").then(({ data, error }) => {
-      if (error) return toast.error("Nepavyko įkelti kainų.");
+      if (error) { toast.error("Nepavyko įkelti kainų."); return; }
       setRows((data ?? []).sort((a, b) => ORDER.indexOf(a.plan_key) - ORDER.indexOf(b.plan_key))
         .map((r) => ({ ...r, price: String(r.price).replace(".", ",") })));
     });
   }, []);
 
-  const save = async () => {
+  const save = async (): Promise<void> => {
     if (!rows) return;
     const parsed = rows.map((r) => ({ ...r, value: Number(r.price.replace(",", ".")) }));
     if (parsed.some((r) => !Number.isFinite(r.value) || r.value <= 0 || r.value >= 100000))
-      return toast.error("Įveskite teigiamą kainą eurais (pvz., 49 arba 49,90).");
+      return void toast.error("Įveskite teigiamą kainą eurais (pvz., 49 arba 49,90).");
     setSaving(true);
     for (const r of parsed) {
       const { data, error } = await supabase.from("plan_prices")
         .update({ price: Math.round(r.value * 100) / 100 }).eq("plan_key", r.plan_key).select("plan_key");
       if (error || !data?.length) {
         setSaving(false);
-        return toast.error("Nepavyko išsaugoti kainų. Kainas keisti gali tik vadovas.");
+        return void toast.error("Nepavyko išsaugoti kainų. Kainas keisti gali tik vadovas.");
       }
     }
     setSaving(false);

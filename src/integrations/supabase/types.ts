@@ -14,6 +14,98 @@ export type Database = {
   }
   public: {
     Tables: {
+      invoice_settings: {
+        Row: {
+          bank_iban: string
+          bank_name: string
+          company_address: string
+          company_code: string
+          company_name: string
+          id: boolean
+          is_vat_payer: boolean
+          last_number: number
+          series_prefix: string
+          updated_at: string
+          vat_code: string | null
+        }
+        Insert: {
+          bank_iban?: string
+          bank_name?: string
+          company_address?: string
+          company_code?: string
+          company_name?: string
+          id?: boolean
+          is_vat_payer?: boolean
+          last_number?: number
+          series_prefix?: string
+          updated_at?: string
+          vat_code?: string | null
+        }
+        Update: {
+          bank_iban?: string
+          bank_name?: string
+          company_address?: string
+          company_code?: string
+          company_name?: string
+          id?: boolean
+          is_vat_payer?: boolean
+          last_number?: number
+          series_prefix?: string
+          updated_at?: string
+          vat_code?: string | null
+        }
+        Relationships: []
+      }
+      invoices: {
+        Row: {
+          amount_without_vat: number
+          buyer_details: Json
+          id: string
+          invoice_number: string
+          issue_date: string
+          line_item: string
+          order_id: string
+          seller_details: Json
+          total_amount: number
+          vat_amount: number
+          vat_rate: number
+        }
+        Insert: {
+          amount_without_vat: number
+          buyer_details: Json
+          id?: string
+          invoice_number: string
+          issue_date?: string
+          line_item: string
+          order_id: string
+          seller_details: Json
+          total_amount: number
+          vat_amount: number
+          vat_rate?: number
+        }
+        Update: {
+          amount_without_vat?: number
+          buyer_details?: Json
+          id?: string
+          invoice_number?: string
+          issue_date?: string
+          line_item?: string
+          order_id?: string
+          seller_details?: Json
+          total_amount?: number
+          vat_amount?: number
+          vat_rate?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "invoices_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: true
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       order_audit_logs: {
         Row: {
           action_type: string
@@ -280,6 +372,28 @@ export type Database = {
           _user_id: string
         }
         Returns: boolean
+      }
+      issue_invoice: {
+        Args: { order_uuid: string }
+        Returns: {
+          amount_without_vat: number
+          buyer_details: Json
+          id: string
+          invoice_number: string
+          issue_date: string
+          line_item: string
+          order_id: string
+          seller_details: Json
+          total_amount: number
+          vat_amount: number
+          vat_rate: number
+        }
+        SetofOptions: {
+          from: "*"
+          to: "invoices"
+          isOneToOne: true
+          isSetofReturn: false
+        }
       }
       manage_team_member: {
         Args: {
