@@ -17,3 +17,15 @@ describe('invoice settings validation', () => {
     expect(invoiceSettingsError({ ...ok, last_number: '1.5' })).not.toBeNull();
   });
 });
+
+import { invoiceSettingsErrors } from '@/lib/invoice-settings-validation';
+describe('inline field errors', () => {
+  it('maps each invalid field to its message', () => {
+    const e = invoiceSettingsErrors({ company_code: '1', vat_code: 'X', bank_iban: 'LT1', is_vat_payer: true, last_number: '-1' });
+    expect(e.company_code).toBe('Įmonės kodas turi sudaryti 9 skaitmenis');
+    expect(e.vat_code).toBe('Neteisingas PVM kodo formatas (pvz., LT100000000)');
+    expect(e.bank_iban).toBe('Neteisingas IBAN formatas (pvz., LT123456789012345678)');
+    expect(e.last_number).toBe('Skaičius turi būti teigiamas sveikasis skaičius');
+  });
+  it('ignores VAT code when not a VAT payer', () => expect(invoiceSettingsErrors({ ...ok, vat_code: 'bad' }).vat_code).toBeUndefined());
+});
