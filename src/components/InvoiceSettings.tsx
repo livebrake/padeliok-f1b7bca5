@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { invoiceSettingsErrors, type InvoiceSettingsField } from '@/lib/invoice-settings-validation';
+import { invoiceSettingsErrors } from '@/lib/invoice-settings-validation';
 import { formatInvoiceNumber } from '@/lib/invoice-pdf';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -38,7 +38,6 @@ export function InvoiceSettings() {
   const validate = () => { setSubmitted(true); return Object.keys(allErrors).length === 0; };
   const fieldError = (k: string) => { const m = shown(k); return m ? <p id={`inv-${k}-err`} className="text-xs text-destructive">{m}</p> : null; };
   const errProps = (k: string) => (shown(k) ? { 'aria-invalid': true, 'aria-describedby': `inv-${k}-err`, className: 'border-destructive focus-visible:ring-destructive' } : {});
-  void (null as unknown as InvoiceSettingsField);
   const save = async (): Promise<void> => {
     if (!validate()) return;
     setSaving(true);
