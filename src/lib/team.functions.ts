@@ -12,7 +12,7 @@ export const inviteTeamMember = createServerFn({ method: 'POST' })
     const requestOrigin = new URL(getRequest().url).origin;
     if (data.origin !== requestOrigin) throw new Error('Neteisingas kvietimo adresas.');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { data: invitation, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, { data: { full_name: data.name }, redirectTo: `${requestOrigin}/misko-skydas/pakvietimas` });
+    const { data: invitation, error: inviteError } = await supabaseAdmin.auth.admin.inviteUserByEmail(data.email, { data: { full_name: data.name }, redirectTo: `${requestOrigin}/misko-skydas` });
     if (inviteError || !invitation.user) throw new Error(teamAuthMessage(inviteError, 'Nepavyko išsiųsti kvietimo. Bandykite dar kartą.'));
     const { error: saveError } = await context.supabase.rpc('manage_team_member', { target_user: invitation.user.id, display_name: data.name, member_email: data.email, new_role: data.role, active: true });
     if (saveError) {
@@ -34,7 +34,7 @@ export const resetTeamMemberPassword = createServerFn({ method: 'POST' })
     const { data: member, error: memberError } = await context.supabase.from('team_members').select('email, is_active').eq('user_id', data.userId).single();
     if (memberError || !member?.is_active) throw new Error('Slaptažodį galima atkurti tik aktyviam komandos nariui.');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(member.email, { redirectTo: `${requestOrigin}/misko-skydas/pakvietimas` });
+    const { error: resetError } = await supabaseAdmin.auth.resetPasswordForEmail(member.email, { redirectTo: `${requestOrigin}/misko-skydas` });
     if (resetError) throw new Error(teamAuthMessage(resetError, 'Nepavyko išsiųsti slaptažodžio atkūrimo nuorodos. Bandykite dar kartą.'));
     return { ok: true };
   });

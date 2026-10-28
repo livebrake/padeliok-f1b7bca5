@@ -61,6 +61,12 @@ function endOfDay(d: Date) {
 export const Route = createFileRoute("/misko-skydas/")({
   ssr: false,
   beforeLoad: async () => {
+    // Invite/recovery links land here; hand them to the password page before auth checks.
+    const { hash, search } = window.location;
+    const hp = new URLSearchParams(hash.slice(1));
+    if (hp.has('error') || hp.has('error_code') || ['invite', 'recovery'].includes(hp.get('type') ?? '') || new URLSearchParams(search).has('code')) {
+      throw redirect({ href: `/misko-skydas/pakvietimas${search}${hash}`, replace: true });
+    }
     const { data } = await supabase.auth.getUser();
     if (!data.user) throw redirect({ to: "/", replace: true });
     const { data: role } = await supabase.rpc('team_access');
