@@ -45,11 +45,11 @@ function teamHtml(d: OrderEmailData) {
     row("Aprašymas", esc(d.comment).replace(/\n/g, "<br>")),
     row(
       "Dokumentai",
-      d.fileLinks.map((f) => `<a href="${esc(f.url)}">${esc(f.name)}</a>`).join("<br>") || "—",
+      d.fileLinks.length ? '<a href="https://padeliok.lovable.app/misko-skydas">Atidaryti užsakymo dokumentus</a>' : "—",
     ),
   ].join("");
   return wrap(
-    `<h2 style="margin:0 0 16px">Naujas užsakymas #${esc(d.orderNumber)}</h2><table style="border-collapse:collapse">${rows}</table><p style="color:#888;font-size:12px;margin-top:16px">Dokumentų nuorodos galioja 7 dienas. Visada pasiekiami administravimo skydelyje.</p>`,
+    `<h2 style="margin:0 0 16px">Naujas užsakymas #${esc(d.orderNumber)}</h2><table style="border-collapse:collapse">${rows}</table><p style="color:#888;font-size:12px;margin-top:16px">Dokumentai pasiekiami administravimo skydelyje.</p>`,
   );
 }
 
@@ -107,6 +107,6 @@ export async function sendOrderEmails(d: OrderEmailData) {
         to: [TEAM_EMAIL],
         reply_to: d.email,
         subject: `Naujas užsakymas #${d.orderNumber} - ${d.planName}`,
-        html: teamHtml({ ...d, fileLinks: [] }),
+        html: teamHtml(d),
       });
 }

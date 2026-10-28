@@ -17,8 +17,7 @@ export async function fulfillPaidOrder(orderId: string) {
   try {
     const fileLinks: { name: string; url: string }[] = [];
     for (const path of order.file_paths) {
-      const { data } = await supabaseAdmin.storage.from('order-documents').createSignedUrl(path, 60 * 60 * 24 * 7);
-      if (data?.signedUrl) fileLinks.push({ name: path.split('/').pop()?.slice(9) || 'Dokumentas', url: data.signedUrl });
+      fileLinks.push({ name: path.split('/').pop()?.slice(9) || 'Dokumentas', url: '' });
     }
     const isCompany = order.client_type === 'company' || order.client_type === 'juridinis';
     const { sendOrderEmails } = await import('@/lib/order-emails.server');
