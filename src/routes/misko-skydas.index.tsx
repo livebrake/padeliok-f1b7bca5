@@ -1,4 +1,9 @@
 import { PlanPricesSettings } from '@/components/PlanPricesSettings';
+import { InvoiceSettings } from '@/components/InvoiceSettings';
+import { AccountingExport } from '@/components/AccountingExport';
+import { useServerFn } from '@tanstack/react-start';
+import { ensureInvoice } from '@/lib/invoices.functions';
+import { downloadBlob, invoicePdfBlob } from '@/lib/invoice-client';
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
 import { useMemo, useState } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -133,6 +138,16 @@ function Dashboard() {
     const { error } = await supabase.rpc('change_team_order', { order_uuid: id, change_assignment: true, ...(member === 'none' ? {} : { member_uuid: member }) }); if (error) throw error;
   }, onSuccess: (_, v) => { qc.invalidateQueries({ queryKey: ['admin-orders'] }); qc.invalidateQueries({ queryKey: ['order-audit', v.id] }); toast.success('Priskyrimas atnaujintas.'); }, onError: (e) => toast.error(e.message) });
 
+  const ensureInvoiceFn = useServerFn(ensureInvoice);
+  const [invoiceBusy, setInvoiceBusy] = useState<string | null>(null);
+  async function downloadInvoice(orderId: string) {
+    setInvoiceBusy(orderId);
+    try {
+      const inv = await ensureInvoiceFn({ data: { orderId } });
+      downloadBlob(await invoicePdfBlob(inv), `${inv.invoice_number}.pdf`);
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'Nepavyko paruošti sąskaitos.'); } finally { setInvoiceBusy(null); }
+  }
+
   async function openFile(path: string) {
     const { data, error } = await supabase.storage.from("order-documents").createSignedUrl(path, 300);
     if (error || !data) {
@@ -262,7 +277,7 @@ function Dashboard() {
 
       <div className="mx-auto max-w-7xl space-y-4 px-4 py-6">
         <Tabs value={manager ? view : 'orders'} onValueChange={setView}><TabsList><TabsTrigger value="orders">Užsakymai</TabsTrigger>{manager && <><TabsTrigger value="finance">Finansai</TabsTrigger><TabsTrigger value="team">Komanda</TabsTrigger><TabsTrigger value="settings">Nustatymai</TabsTrigger></>}</TabsList></Tabs>
-        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">Finansai</h2><Select value={period} onValueChange={v => setPeriod(v as FinancePeriod)}><SelectTrigger className="w-48" aria-label="Laikotarpis"><SelectValue /></SelectTrigger><SelectContent>{FINANCE_PERIODS.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent></Select></div>{(() => { const f = financeSummary((orders ?? []).filter(o => inPeriod(o, period))); return <dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Bendros pajamos</dt><dd className="text-3xl font-bold">{formatEur(f.revenue)}</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{f.count}</dd></div><div><dt className="text-muted-foreground">Vidutinė užsakymo vertė</dt><dd className="text-3xl font-bold">{formatEur(f.average)}</dd></div></dl>; })()}</section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p><PlanPricesSettings /></section> : <>
+        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">Finansai</h2><Select value={period} onValueChange={v => setPeriod(v as FinancePeriod)}><SelectTrigger className="w-48" aria-label="Laikotarpis"><SelectValue /></SelectTrigger><SelectContent>{FINANCE_PERIODS.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent></Select></div>{(() => { const f = financeSummary((orders ?? []).filter(o => inPeriod(o, period))); return <dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Bendros pajamos</dt><dd className="text-3xl font-bold">{formatEur(f.revenue)}</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{f.count}</dd></div><div><dt className="text-muted-foreground">Vidutinė užsakymo vertė</dt><dd className="text-3xl font-bold">{formatEur(f.average)}</dd></div></dl>; })()}<AccountingExport /></section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p><PlanPricesSettings /><InvoiceSettings /></section> : <>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="flex-wrap h-auto">
@@ -366,6 +381,11 @@ function Dashboard() {
                   </TableCell>
                   <TableCell>
                     <Badge className={PAY_CLS[paymentLabel(o.payment_status)]}>{paymentLabel(o.payment_status)}</Badge>
+                    {manager && paymentLabel(o.payment_status) === 'Apmokėta' && (
+                      <Button variant="link" size="sm" className="block h-auto px-0 text-xs" disabled={invoiceBusy === o.id} onClick={() => downloadInvoice(o.id)}>
+                        {invoiceBusy === o.id ? 'Ruošiama…' : 'Atsisiųsti SF (PDF)'}
+                      </Button>
+                    )}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
