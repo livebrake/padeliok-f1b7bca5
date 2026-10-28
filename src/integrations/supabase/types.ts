@@ -164,6 +164,7 @@ export type Database = {
           montonio_uuid: string | null
           order_number: string
           paid_at: string | null
+          payment_email_claimed_at: string | null
           payment_email_sent_at: string | null
           payment_method: string | null
           payment_status: string
@@ -195,6 +196,7 @@ export type Database = {
           montonio_uuid?: string | null
           order_number: string
           paid_at?: string | null
+          payment_email_claimed_at?: string | null
           payment_email_sent_at?: string | null
           payment_method?: string | null
           payment_status?: string
@@ -226,6 +228,7 @@ export type Database = {
           montonio_uuid?: string | null
           order_number?: string
           paid_at?: string | null
+          payment_email_claimed_at?: string | null
           payment_email_sent_at?: string | null
           payment_method?: string | null
           payment_status?: string
