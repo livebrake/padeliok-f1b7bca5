@@ -111,6 +111,14 @@ function RootShell({ children }: { children: ReactNode }) {
   return (
     <html lang="lt">
       <head>
+        {/* Auth links (invite/recovery) may land on any page; move them to the
+            password page before the visitor gate or any redirect drops the token. */}
+        <script
+          dangerouslySetInnerHTML={{
+            __html:
+              "(function(){try{var h=location.hash,p=location.pathname;if(p!=='/misko-skydas/pakvietimas'&&/(^#|&)(type=(invite|recovery)|error_code=)/.test(h)){location.replace('/misko-skydas/pakvietimas'+location.search+h);}}catch(e){}})();",
+          }}
+        />
         <HeadContent />
       </head>
       <body>
