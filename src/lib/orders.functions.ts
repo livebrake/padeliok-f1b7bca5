@@ -3,11 +3,8 @@ import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 import { validateCheckout, normalizePhone, FILE_EXT } from "@/lib/order-validation";
 
-const PRICES: Record<string, { name: string; price: number }> = {
-  bazinis: { name: "Bazinis", price: 49 },
-  standartinis: { name: "Standartinis", price: 99 },
-  premium: { name: "Premium", price: 199 },
-};
+// Allowed plan keys only; actual prices live in the plan_prices table.
+const PRICES: Record<string, true> = { bazinis: true, standartinis: true, premium: true };
 
 const sanitize = (s: string) => s.replace(/<[^>]*>/g, "").replace(/[\u0000-\u0008\u000B\u000C\u000E-\u001F]/g, "").trim();
 
@@ -80,8 +77,7 @@ export const submitOrder = createServerFn({ method: "POST" })
         return invalid("PVM kodas turi prasidėti „LT“ ir turėti 9 arba 12 skaitmenų (pvz., LT123456789).");
       company = { company_name: name, company_code: code, company_address: addr || null, vat_code: v.noVat ? "Ne PVM mokėtojas" : vat };
     }
-    const plan = PRICES[v.plan.toLowerCase()];
-    if (!plan) return invalid("Nepasirinktas planas.");
+    if (!PRICES[v.plan.toLowerCase()]) return invalid("Nepasirinktas planas.");
     const comment = sanitize(v.komentaras);
     if (!comment) return invalid("Aprašykite savo užduotį – šis laukas būtinas.");
 
@@ -91,6 +87,11 @@ export const submitOrder = createServerFn({ method: "POST" })
       return invalid("Neteisinga įkelto failo nuoroda. Įkelkite failus iš naujo.");
 
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    // Price always comes from the database so admin price changes apply to checkout and Montonio.
+    const { data: priceRow } = await supabaseAdmin
+      .from("plan_prices").select("name, price").eq("plan_key", v.plan.toLowerCase()).maybeSingle();
+    const plan = priceRow ? { name: priceRow.name, price: Number(priceRow.price) } : null;
+    if (!plan || !(plan.price > 0)) return invalid("Nepavyko nustatyti plano kainos. Bandykite dar kartą.");
     const { data: seq } = await supabaseAdmin.rpc("next_order_number");
     const orderNumber = seq ?? `PAD-${Date.now().toString().slice(-6)}`;
 
