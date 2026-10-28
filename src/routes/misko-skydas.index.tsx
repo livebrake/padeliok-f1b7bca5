@@ -108,6 +108,7 @@ function Dashboard() {
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const { data: role } = useQuery({ queryKey: ['team-role'], queryFn: async () => { const { data, error } = await supabase.rpc('team_access'); if (error) throw error; return data; } });
   const manager = canManageTeam(role);
+  const selectedOrder = orders?.find(o => o.id === selectedId);
   const { data: members } = useQuery({ queryKey: ['team-members'], queryFn: async () => { const { data, error } = await supabase.from('team_members').select('*'); if (error) throw error; return data; } });
 
   const { data: orders, isLoading, error } = useQuery({

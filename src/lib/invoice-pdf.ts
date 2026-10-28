@@ -19,7 +19,11 @@ export function invoiceTotals(total: number, vatPayer: boolean) {
 }
 
 export async function loadInvoiceFonts(origin = "") {
-  const get = async (f: string) => new Uint8Array(await (await fetch(`${origin}/fonts/${f}`)).arrayBuffer());
+  const get = async (f: string) => {
+    const response = await fetch(`${origin}/fonts/${f}`);
+    if (!response.ok) throw new Error('Nepavyko įkelti sąskaitos šriftų. Bandykite dar kartą.');
+    return new Uint8Array(await response.arrayBuffer());
+  };
   const [regular, bold] = await Promise.all([get("DejaVuSans.ttf"), get("DejaVuSans-Bold.ttf")]);
   return { regular, bold };
 }
