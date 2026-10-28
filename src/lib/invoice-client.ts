@@ -3,7 +3,9 @@ import { loadInvoiceFonts, renderInvoicePdf, type Invoice } from '@/lib/invoice-
 let fonts: ReturnType<typeof loadInvoiceFonts> | null = null;
 export const invoicePdfBlob = async (inv: Invoice) => {
   fonts ??= loadInvoiceFonts();
-  const bytes = await renderInvoicePdf(inv, await fonts);
+  let bytes: Uint8Array;
+  try { bytes = await renderInvoicePdf(inv, await fonts); }
+  catch (error) { fonts = null; throw error; }
   return new Blob([bytes as BlobPart], { type: 'application/pdf' });
 };
 

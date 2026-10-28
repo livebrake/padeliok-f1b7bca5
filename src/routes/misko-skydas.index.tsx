@@ -119,6 +119,7 @@ function Dashboard() {
     },
   });
 
+  const selectedOrder = orders?.find(o => o.id === selectedId);
   const update = useMutation({
     mutationFn: async ({ id, status }: { id: string; status: string }) => {
       if (!WORK_STATUSES.some(s => s === status)) throw new Error('Netinkama darbo būsena.');
@@ -404,8 +405,8 @@ function Dashboard() {
           </Table>
         </div>
         </>}
-        {selectedId && orders?.find(o => o.id===selectedId) && <OrderDetails order={orders.find(o => o.id===selectedId) as TeamOrder} onClose={() => setSelectedId(null)} openFile={openFile}
-          invoice={manager && paymentLabel(orders.find(o => o.id===selectedId)!.payment_status) === 'Apmokėta' ? { busy: invoiceBusy === selectedId, download: () => downloadInvoice(selectedId) } : undefined} />}
+        {selectedOrder && <OrderDetails order={selectedOrder} onClose={() => setSelectedId(null)} openFile={openFile}
+          invoice={manager && selectedOrder.payment_status === 'PAID' ? { busy: invoiceBusy === selectedOrder.id, download: () => downloadInvoice(selectedOrder.id) } : undefined} />}
       </div>
     </main>
   );

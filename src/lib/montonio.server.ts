@@ -66,7 +66,7 @@ export async function createPayment(o: {
   return (await res.json()) as { uuid: string; paymentUrl: string };
 }
 
-export type OrderTokenResult = { orderNumber: string; status: string };
+export type OrderTokenResult = { orderNumber: string; status: string; fulfillment?: 'complete' | 'pending' };
 
 /** Verifies a Montonio order token signature and, when PAID, marks the order paid and sends the confirmation once. */
 export async function processOrderToken(token: string, origin: string): Promise<OrderTokenResult> {
@@ -79,42 +79,23 @@ export async function processOrderToken(token: string, origin: string): Promise<
   if (status !== "PAID") return { orderNumber, status };
 
   const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-  const { data: order } = await supabaseAdmin.from("orders").select("*").eq("order_number", orderNumber).maybeSingle();
-  if (!order) throw new Error("Užsakymas nerastas.");
+  const { data: order, error: orderError } = await supabaseAdmin.from("orders").select("*").eq("order_number", orderNumber).maybeSingle();
+  if (orderError || !order) throw orderError ?? new Error("Užsakymas nerastas.");
   if (Number(p.grandTotal) !== Number(order.price)) throw new Error("Apmokėta suma nesutampa.");
 
   if (order.payment_status !== "PAID") {
-    await supabaseAdmin.from("orders")
+    const { error } = await supabaseAdmin.from("orders")
       .update({ payment_status: "PAID", paid_at: new Date().toISOString(), montonio_uuid: p.uuid ?? order.montonio_uuid })
       .eq("id", order.id);
+    if (error) throw error;
   }
-  // Claim the email slot atomically so return page + webhook never double-send.
-  const { data: claimed } = await supabaseAdmin.from("orders")
-    .update({ payment_email_sent_at: new Date().toISOString() })
-    .eq("id", order.id).is("payment_email_sent_at", null).select("id");
-  if (claimed?.length) {
-    const fileLinks: { name: string; url: string }[] = [];
-    for (const fp of order.file_paths) {
-      const { data: s } = await supabaseAdmin.storage.from("order-documents").createSignedUrl(fp, 60 * 60 * 24 * 7);
-      if (s?.signedUrl) fileLinks.push({ name: fp.split("/").pop()!.slice(9), url: s.signedUrl });
-    }
-    // Invoice failure must never block payment confirmation; it can be regenerated from the admin panel.
-    let invoice: { filename: string; content: string } | null = null;
-    try {
-      const { data: inv, error } = await supabaseAdmin.rpc("issue_invoice", { order_uuid: order.id });
-      if (error || !inv) throw error ?? new Error("no invoice");
-      const { renderInvoicePdf, loadInvoiceFonts, toBase64 } = await import("@/lib/invoice-pdf");
-      const pdf = await renderInvoicePdf(inv, await loadInvoiceFonts(origin));
-      invoice = { filename: `${inv.invoice_number}.pdf`, content: toBase64(pdf) };
-    } catch (e) { console.error("invoice generation failed", e); }
-    const isCo = order.client_type === "company" || order.client_type === "juridinis";
-    const { sendOrderEmails } = await import("@/lib/order-emails.server");
-    await sendOrderEmails({
-      orderNumber, isCompany: isCo, fullName: order.full_name ?? "", email: order.email, phone: order.phone,
-      planName: order.plan_name, price: order.price, projectGoal: order.project_goal ?? "", comment: order.comment ?? "",
-      company: isCo ? { company_name: order.company_name ?? "", company_code: order.company_code ?? "", company_address: order.company_address, vat_code: order.vat_code ?? "" } : null,
-      fileLinks, invoice,
-    });
+  try {
+    const { fulfillPaidOrder } = await import('@/lib/paid-order.server');
+    await fulfillPaidOrder(order.id);
+  } catch (error) {
+    console.error('paid order fulfillment failed', { orderId: order.id, error });
+    // Payment remains verified; the webhook gets a retryable response, not a false unpaid result.
+    return { orderNumber, status: 'PAID', fulfillment: 'pending' };
   }
-  return { orderNumber, status: "PAID" };
+  return { orderNumber, status: "PAID", fulfillment: 'complete' };
 }

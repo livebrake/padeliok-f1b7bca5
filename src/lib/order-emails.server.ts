@@ -1,3 +1,5 @@
+import type { Invoice } from '@/lib/invoice-pdf';
+
 type OrderEmailData = {
   orderNumber: string;
   isCompany: boolean;
@@ -10,12 +12,12 @@ type OrderEmailData = {
   comment: string;
   company: { company_name: string; company_code: string; company_address: string | null; vat_code: string } | null;
   fileLinks: { name: string; url: string }[];
-  invoice?: { filename: string; content: string } | null;
+  invoice: Invoice;
 };
 
 const TEAM_EMAIL = "info@padeliok.lt";
 const esc = (s: string) =>
-  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
+  s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
 
 const row = (k: string, v: string) =>
   `<tr><td style="padding:6px 12px 6px 0;color:#666;vertical-align:top">${esc(k)}</td><td style="padding:6px 0;color:#111">${v}</td></tr>`;
@@ -43,11 +45,11 @@ function teamHtml(d: OrderEmailData) {
     row("Aprašymas", esc(d.comment).replace(/\n/g, "<br>")),
     row(
       "Dokumentai",
-      d.fileLinks.map((f) => `<a href="${esc(f.url)}">${esc(f.name)}</a>`).join("<br>") || "—",
+      d.fileLinks.length ? '<a href="https://padeliok.lovable.app/misko-skydas">Atidaryti užsakymo dokumentus</a>' : "—",
     ),
   ].join("");
   return wrap(
-    `<h2 style="margin:0 0 16px">Naujas užsakymas #${esc(d.orderNumber)}</h2><table style="border-collapse:collapse">${rows}</table><p style="color:#888;font-size:12px;margin-top:16px">Dokumentų nuorodos galioja 7 dienas. Visada pasiekiami administravimo skydelyje.</p>`,
+    `<h2 style="margin:0 0 16px">Naujas užsakymas #${esc(d.orderNumber)}</h2><table style="border-collapse:collapse">${rows}</table><p style="color:#888;font-size:12px;margin-top:16px">Dokumentai pasiekiami administravimo skydelyje.</p>`,
   );
 }
 
@@ -72,40 +74,39 @@ function clientHtml(d: OrderEmailData) {
     <p>Pagarbiai,<br>padeliok.lt komanda</p>`);
 }
 
-async function send(apiKey: string, from: string, payload: Record<string, unknown>) {
+async function send(apiKey: string, from: string, idempotencyKey: string, payload: Record<string, unknown>) {
   const res = await fetch("https://api.resend.com/emails", {
     method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json", "Idempotency-Key": idempotencyKey },
     body: JSON.stringify({ from, ...payload }),
   });
-  if (!res.ok) console.error(`Resend failed [${res.status}]: ${await res.text()}`);
+  if (!res.ok) {
+    const body = await res.text();
+    console.error(`Resend failed [${res.status}]: ${body}`);
+    throw new Error(`Nepavyko išsiųsti patvirtinimo laiško (${res.status}).`);
+  }
 }
 
-/** Sends team + client emails. Never throws: an email failure must not fail the order. */
+/** Throws on failure so the payment handler can release its delivery lease and retry. */
 export async function sendOrderEmails(d: OrderEmailData) {
   const apiKey = process.env["RESEND_API_KEY"];
   if (!apiKey) {
-    console.error("RESEND_API_KEY is not configured – order emails skipped");
-    return;
+    throw new Error('Laiškų siuntimas nesukonfigūruotas.');
   }
   const from = process.env["RESEND_FROM"] || "Padeliok <uzsakymai@padeliok.lt>";
-  try {
-    await Promise.all([
-      send(apiKey, from, {
+  const { renderInvoicePdf, toBase64 } = await import('@/lib/invoice-pdf');
+  const { invoiceServerFonts } = await import('@/lib/invoice-fonts.server');
+  const attachment = { filename: `${d.invoice.invoice_number}.pdf`, content: toBase64(await renderInvoicePdf(d.invoice, invoiceServerFonts())) };
+  // Stable message bodies and separate keys allow partial-send retries without duplicates.
+  await send(apiKey, from, `paid-client-${d.invoice.id}`, {
+    to: [d.email], reply_to: TEAM_EMAIL,
+    subject: `Jūsų užsakymas #${d.orderNumber} priimtas | padeliok.lt`,
+    html: clientHtml(d), attachments: [attachment],
+  });
+  await send(apiKey, from, `paid-team-${d.invoice.id}`, {
         to: [TEAM_EMAIL],
         reply_to: d.email,
         subject: `Naujas užsakymas #${d.orderNumber} - ${d.planName}`,
         html: teamHtml(d),
-      }),
-      send(apiKey, from, {
-        to: [d.email],
-        reply_to: TEAM_EMAIL,
-        subject: `Jūsų užsakymas #${d.orderNumber} priimtas | padeliok.lt`,
-        html: clientHtml(d),
-        ...(d.invoice ? { attachments: [d.invoice] } : {}),
-      }),
-    ]);
-  } catch (e) {
-    console.error("order emails failed", e);
-  }
+      });
 }

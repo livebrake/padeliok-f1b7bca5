@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS payment_email_claimed_at timestamptz;
+COMMENT ON COLUMN public.orders.payment_email_claimed_at IS 'Short-lived confirmation-email processing lease; payment_email_sent_at records successful provider acceptance.';
