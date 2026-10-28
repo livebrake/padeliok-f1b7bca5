@@ -30,7 +30,7 @@ export function InvoicePreview({ blob, number, onClose }: { blob: Blob; number: 
       await page.render({ canvasContext: context, canvas: element, viewport }).promise;
       if (!stopped) setStatus('ready');
     }
-    void render().catch(() => { if (!stopped) setStatus('error'); });
+    void render().catch(error => { if (!stopped) { console.error('invoice.preview_failed', error); setStatus('error'); } });
     return () => { stopped = true; cleanup?.(); };
   }, [blob, attempt]);
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}>
