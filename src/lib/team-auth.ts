@@ -8,7 +8,7 @@ export const invitationSchema = z.object({
   origin: z.string().url('Neteisingas kvietimo adresas.'),
 });
 export const recoverySchema = z.object({ userId: z.string().uuid('Neteisingas darbuotojo identifikatorius.'), origin: z.string().url('Neteisingas atkūrimo adresas.') });
-export const passwordSchema = z.string().min(12, 'Slaptažodį turi sudaryti bent 12 simbolių.');
+export const passwordSchema = z.string().min(8, 'Slaptažodį turi sudaryti bent 8 simbolių.');
 export function canResetTeamPassword(role: string | null | undefined, active: boolean) { return role === 'super_admin' && active; }
 
 /** Never expose raw provider, database or serialized validation errors to members. */
@@ -22,7 +22,7 @@ export function teamAuthMessage(error: unknown, fallback = 'Veiksmo atlikti nepa
   if (/email address is not allowed|email_address_not_authorized/i.test(code + message)) return 'Šiuo el. pašto adresu laiškų siųsti negalima. Patikrinkite adresą ir jo domeną.';
   if (/rate_limit|too many requests|rate limit/i.test(code + message)) return 'Per daug bandymų. Palaukite ir bandykite dar kartą.';
   if (/same_password|same.*password/i.test(code + message)) return 'Naujas slaptažodis turi skirtis nuo dabartinio.';
-  if (/weak_password|password.*(weak|short)/i.test(code + message)) return 'Slaptažodis per silpnas. Naudokite bent 12 simbolių, raides ir skaičius.';
+  if (/weak_password|password.*(weak|short)/i.test(code + message)) return 'Slaptažodis per silpnas. Naudokite bent 8 simbolius, raides ir skaičius.';
   if (/otp_expired|session_not_found|bad_code_verifier|flow_state_expired/i.test(code)) return 'Nuoroda nebegalioja. Paprašykite vadovo atsiųsti naują nuorodą.';
   if (/fetch|network/i.test(message)) return 'Nepavyko susisiekti su serveriu. Bandykite dar kartą.';
   // Project-owned Lithuanian errors are safe; unknown provider text uses a localized fallback.
