@@ -16,3 +16,4 @@
 - Team order reads use team_orders with server-side financial redaction; mutations use narrow change_team_order RPC and immutable database audit triggers to preserve authenticated actors and automated payment ownership.
 - Deactivate team membership instead of deleting accounts, retaining historical assignment and audit references; manage_team_member serializes last-super-admin protection.
 - Team invitations and active-member password recovery use authenticated server functions with a verified super-admin check before loading the service client; shared Lithuanian validation protects both UI and handlers, and the public invitation page completes invite/recovery sessions before setting a password.
+- Plan prices live in plan_prices (public read, super_admin update via RLS); submitOrder reads price from DB so the browser can never set the charged amount.
