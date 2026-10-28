@@ -31,7 +31,7 @@ export function InvoiceSettings() {
   const numValid = Number.isInteger(num) && num >= 0 && /^\d+$/.test(f.last_number);
 
   const allErrors: Partial<Record<string, string>> = { ...invoiceSettingsErrors(f) };
-  if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) allErrors.series_prefix = 'Serija gali būti tik didžiosios raidės ir skaičiai';
+  if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) allErrors['series_prefix'] = 'Serija gali būti tik didžiosios raidės ir skaičiai';
   const shown = (k: string) => (submitted || touched.has(k) ? allErrors[k] : undefined);
   const hasShownErrors = Object.keys(allErrors).some(k => shown(k));
   const touch = (k: string) => setTouched(t => (t.has(k) ? t : new Set(t).add(k)));
