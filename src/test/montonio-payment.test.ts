@@ -1,3 +1,4 @@
+// @vitest-environment node
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { SignJWT } from 'jose';
 import { processOrderToken } from '@/lib/montonio.server';
