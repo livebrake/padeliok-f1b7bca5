@@ -19,3 +19,4 @@
 - Plan prices live in plan_prices (public read, super_admin update via RLS); submitOrder reads price from DB so the browser can never set the charged amount.
 - Invoices are issued only by the service-role issue_invoice RPC (one per paid order, numbering serialized by locking the invoice_settings singleton) and snapshot seller/buyer details; PDFs render from that row via the shared pdf-lib module with bundled DejaVu fonts for Lithuanian glyphs, in both the worker and the browser.
 - Server invoice rendering uses embedded font bytes instead of fetching protected preview assets; PDF timestamps come from the invoice snapshot so retry attachments remain stable.
+- Use bounded attachSessionBearer middleware instead of the generated unbounded getSession attacher so public route hydration cannot hang on auth storage locks; protected server handlers still require a verified bearer, and visitor-gate failures remain closed.
