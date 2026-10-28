@@ -18,7 +18,7 @@ export function InvoiceSettings() {
   const [saving, setSaving] = useState(false);
   useEffect(() => {
     supabase.from('invoice_settings').select('*').maybeSingle().then(({ data, error }) => {
-      if (error || !data) return toast.error('Nepavyko įkelti sąskaitų nustatymų.');
+      if (error || !data) { toast.error('Nepavyko įkelti sąskaitų nustatymų.'); return; }
       setSavedNumber(data.last_number);
       setF({ ...data, vat_code: data.vat_code ?? '', last_number: String(data.last_number) });
     });
@@ -27,16 +27,16 @@ export function InvoiceSettings() {
   const num = Number(f.last_number);
   const numValid = Number.isInteger(num) && num >= 0 && /^\d+$/.test(f.last_number);
 
-  const save = async () => {
-    if (!numValid) return toast.error('Paskutinis numeris turi būti sveikasis skaičius (0 ar daugiau).');
-    if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) return toast.error('Serija gali būti tik didžiosios raidės ir skaičiai.');
+  const save = async (): Promise<void> => {
+    if (!numValid) return void toast.error('Paskutinis numeris turi būti sveikasis skaičius (0 ar daugiau).');
+    if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) return void toast.error('Serija gali būti tik didžiosios raidės ir skaičiai.');
     setSaving(true);
     const { data, error } = await supabase.from('invoice_settings').update({
       series_prefix: f.series_prefix, company_name: f.company_name.trim(), company_code: f.company_code.trim(), vat_code: f.vat_code.trim() || null,
       company_address: f.company_address.trim(), bank_name: f.bank_name.trim(), bank_iban: f.bank_iban.replace(/\s+/g, '').toUpperCase(), is_vat_payer: f.is_vat_payer, last_number: num,
     }).eq('id', true).select('last_number');
     setSaving(false);
-    if (error || !data?.length) return toast.error('Nepavyko išsaugoti. Nustatymus keisti gali tik vadovas.');
+    if (error || !data?.length) return void toast.error('Nepavyko išsaugoti. Nustatymus keisti gali tik vadovas.');
     setSavedNumber(num);
     toast.success('Rekvizitai ir sąskaitų nustatymai išsaugoti');
   };

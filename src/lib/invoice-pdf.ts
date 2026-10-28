@@ -3,7 +3,8 @@ import fontkit from "@pdf-lib/fontkit";
 import type { Tables } from "@/integrations/supabase/types";
 
 export type Invoice = Tables<"invoices">;
-type Party = Record<string, string | boolean | null | undefined>;
+type V = string | boolean | null | undefined;
+type Party = { name?: V; company_name?: V; company_code?: V; vat_code?: V; company_address?: V; address?: V; bank_name?: V; bank_iban?: V; email?: V; phone?: V; order_number?: V; is_company?: V };
 
 export const NON_VAT_NOTE = "PVM neskaičiuojamas remiantis LR PVM įstatymo nuostatomis (Ne PVM mokėtojas)";
 export const eur = (n: number) => `${Number(n).toFixed(2).replace(".", ",")} €`;
