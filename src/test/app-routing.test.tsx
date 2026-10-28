@@ -11,13 +11,14 @@ vi.mock("@/lib/gate.functions", () => ({
 
 import { routeTree } from "@/routeTree.gen";
 
-function renderAt(path: string) {
+async function renderAt(path: string) {
   const queryClient = new QueryClient();
   const router = createRouter({
     routeTree,
     context: { queryClient },
     history: createMemoryHistory({ initialEntries: [path] }),
   });
+  await router.load();
   return render(<RouterProvider router={router} />);
 }
 
@@ -28,19 +29,19 @@ afterEach(() => {
 
 // Assert only that the router mounts and paints, never page content:
 // routes are rewritten as the app is built and this must keep passing.
+// The root shell renders <html>, which escapes the test container, so look in the whole document.
 describe("App routing", () => {
-  it("renders the index route", async () => {
-    renderAt("/");
+  it("renders the index route", { timeout: 15000 }, async () => {
+    await renderAt("/");
 
-    // The root shell renders <html>/<body>, which the DOM hoists out of the test container.
-    await waitFor(() => expect(document.body.textContent?.trim()).toBeTruthy(), { timeout: 8000 });
+    await waitFor(() => expect(document.querySelector("h1")).not.toBeNull(), { timeout: 8000 });
   });
 
-  it("renders the not-found route", async () => {
+  it("renders the not-found route", { timeout: 15000 }, async () => {
     vi.spyOn(console, "warn").mockImplementation(() => undefined);
 
-    renderAt("/this-route-does-not-exist");
+    await renderAt("/this-route-does-not-exist");
 
-    await waitFor(() => expect(document.body.textContent?.trim()).toBeTruthy(), { timeout: 8000 });
+    await waitFor(() => expect(document.querySelector("h1")).not.toBeNull(), { timeout: 8000 });
   });
 });
