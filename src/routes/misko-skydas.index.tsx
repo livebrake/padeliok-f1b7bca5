@@ -1,6 +1,7 @@
 import { PlanPricesSettings } from '@/components/PlanPricesSettings';
 import { InvoiceSettings } from '@/components/InvoiceSettings';
 import { AccountingExport } from '@/components/AccountingExport';
+import { InvoicePreview } from '@/components/InvoicePreview';
 import { useServerFn } from '@tanstack/react-start';
 import { ensureInvoice } from '@/lib/invoices.functions';
 import { downloadBlob, invoicePdfBlob } from '@/lib/invoice-client';
@@ -141,12 +142,15 @@ function Dashboard() {
 
   const ensureInvoiceFn = useServerFn(ensureInvoice);
   const [invoiceBusy, setInvoiceBusy] = useState<string | null>(null);
-  async function downloadInvoice(orderId: string) {
+  const [invoicePreview, setInvoicePreview] = useState<{ blob: Blob; number: string } | null>(null);
+  async function downloadInvoice(orderId: string, preview = false) {
     setInvoiceBusy(orderId);
     try {
       const inv = await ensureInvoiceFn({ data: { orderId } });
       if (inv.generated) toast.success('Sąskaita sėkmingai sugeneruota');
-      downloadBlob(await invoicePdfBlob(inv), `${inv.invoice_number}.pdf`);
+      const blob = await invoicePdfBlob(inv);
+      if (preview) setInvoicePreview({ blob, number: inv.invoice_number });
+      else downloadBlob(blob, `${inv.invoice_number}.pdf`);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Nepavyko paruošti sąskaitos.'); } finally { setInvoiceBusy(null); }
   }
 
@@ -378,11 +382,12 @@ function Dashboard() {
                   </TableCell>
                   <TableCell>
                     <Badge className={PAY_CLS[paymentLabel(o.payment_status)]}>{paymentLabel(o.payment_status)}</Badge>
-                    {manager && paymentLabel(o.payment_status) === 'Apmokėta' && (
+                    {manager && paymentLabel(o.payment_status) === 'Apmokėta' && <>
+                      <Button variant="link" size="sm" className="block h-auto px-0 text-xs" disabled={invoiceBusy === o.id} onClick={() => downloadInvoice(o.id, true)}>Peržiūrėti sąskaitą</Button>
                       <Button variant="link" size="sm" className="block h-auto px-0 text-xs" disabled={invoiceBusy === o.id} onClick={() => downloadInvoice(o.id)}>
                         {invoiceBusy === o.id ? 'Ruošiama…' : 'Atsisiųsti SF (PDF)'}
                       </Button>
-                    )}
+                    </>}
                   </TableCell>
                   <TableCell>
                     <DropdownMenu>
@@ -407,7 +412,8 @@ function Dashboard() {
         </div>
         </>}
         {selectedOrder && <OrderDetails order={selectedOrder} onClose={() => setSelectedId(null)} openFile={openFile}
-          invoice={manager && selectedOrder.payment_status === 'PAID' ? { busy: invoiceBusy === selectedOrder.id, download: () => downloadInvoice(selectedOrder.id) } : undefined} />}
+          invoice={manager && selectedOrder.payment_status === 'PAID' ? { busy: invoiceBusy === selectedOrder.id, download: () => downloadInvoice(selectedOrder.id), preview: () => downloadInvoice(selectedOrder.id, true) } : undefined} />}
+        {manager && invoicePreview && <InvoicePreview blob={invoicePreview.blob} number={invoicePreview.number} onClose={() => setInvoicePreview(null)} />}
       </div>
     </main>
   );

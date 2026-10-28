@@ -1,6 +1,7 @@
 import { PDFDocument, rgb } from "pdf-lib";
 import fontkit from "@pdf-lib/fontkit";
 import type { Tables } from "@/integrations/supabase/types";
+import { invoiceDesignAssets } from '@/lib/invoice-design';
 
 export type Invoice = Tables<"invoices">;
 type V = string | boolean | null | undefined;
@@ -18,17 +19,11 @@ export function invoiceTotals(total: number, vatPayer: boolean) {
   return { total: t, vat, net: Math.round((t - vat) * 100) / 100 };
 }
 
-export async function loadInvoiceFonts(origin = "") {
-  const get = async (f: string) => {
-    const response = await fetch(`${origin}/fonts/${f}`);
-    if (!response.ok) throw new Error('Nepavyko įkelti sąskaitos šriftų. Bandykite dar kartą.');
-    return new Uint8Array(await response.arrayBuffer());
-  };
-  const [regular, bold] = await Promise.all([get("DejaVuSans.ttf"), get("DejaVuSans-Bold.ttf")]);
-  return { regular, bold };
+export async function loadInvoiceFonts() {
+  return invoiceDesignAssets();
 }
 
-export async function renderInvoicePdf(inv: Invoice, fonts: { regular: Uint8Array; bold: Uint8Array }) {
+export async function renderInvoicePdf(inv: Invoice, fonts: { regular: Uint8Array; bold: Uint8Array; mono?: Uint8Array; logo?: Uint8Array }) {
   const doc = await PDFDocument.create();
   doc.setCreationDate(new Date(inv.issue_date));
   doc.setModificationDate(new Date(inv.issue_date));
@@ -36,49 +31,72 @@ export async function renderInvoicePdf(inv: Invoice, fonts: { regular: Uint8Arra
   doc.setTitle(`Sąskaita faktūra ${inv.invoice_number}`);
   const f = await doc.embedFont(fonts.regular, { subset: true });
   const b = await doc.embedFont(fonts.bold, { subset: true });
+  const assets = invoiceDesignAssets();
+  const mono = await doc.embedFont(fonts.mono ?? assets.mono, { subset: true });
+  const logo = await doc.embedPng(fonts.logo ?? assets.logo);
   const page = doc.addPage([595.28, 841.89]);
-  const grey = rgb(0.4, 0.4, 0.4);
-  const t = (s: string, x: number, y: number, size = 10, font = f, color = rgb(0.1, 0.1, 0.1)) =>
+  const ink = rgb(0.035, 0.035, 0.043), grey = rgb(0.443, 0.443, 0.478), border = rgb(0.894, 0.894, 0.906);
+  const t = (s: string, x: number, y: number, size = 10, font = f, color = ink) =>
     page.drawText(s, { x, y, size, font, color });
   const right = (s: string, xr: number, y: number, size = 10, font = f) => t(s, xr - font.widthOfTextAtSize(s, size), y, size, font);
   const s = inv.seller_details as Party, buyer = inv.buyer_details as Party;
   const vatPayer = Number(inv.vat_rate) > 0;
 
-  t(vatPayer ? "PVM SĄSKAITA FAKTŪRA" : "SĄSKAITA FAKTŪRA", 50, 780, 18, b);
-  t(`Serija ir Nr.: ${inv.invoice_number}`, 50, 756, 11);
-  t(`Išrašymo data: ${ltDate(inv.issue_date)}`, 50, 740, 11);
-  if (buyer.order_number) t(`Užsakymo Nr.: ${buyer.order_number}`, 50, 724, 11);
-
-  const block = (title: string, lines: string[], x: number) => {
-    t(title, x, 680, 11, b);
-    lines.filter(Boolean).forEach((l, i) => t(l, x, 662 - i * 15, 9.5));
+  const line = (y: number, color = border, x = 36, end = 559) => page.drawLine({ start: { x, y }, end: { x: end, y }, thickness: 0.6, color });
+  // Wrap even unbroken names/addresses, keeping both party columns and table cells separate.
+  const wrap = (text: string, width: number, font = f, size = 9) => {
+    const lines: string[] = []; let current = '';
+    for (const char of text.replace(/\r/g, '')) {
+      if (char === '\n' || font.widthOfTextAtSize(current + char, size) > width) {
+        lines.push(current.trim()); current = char === '\n' ? '' : char;
+      } else current += char;
+    }
+    if (current) lines.push(current.trim());
+    return lines;
   };
-  block("Pardavėjas", [
-    String(s.company_name || "—"), s.company_code ? `Įmonės kodas: ${s.company_code}` : "",
-    s.vat_code ? `PVM kodas: ${s.vat_code}` : "", String(s.company_address || ""),
-    s.bank_name ? `Bankas: ${s.bank_name}` : "", s.bank_iban ? `A. s.: ${s.bank_iban}` : "",
-  ], 50);
-  block("Pirkėjas", [
-    String(buyer.name || "—"), buyer.is_company && buyer.company_code ? `Įmonės kodas: ${buyer.company_code}` : "",
-    buyer.is_company && buyer.vat_code ? `PVM kodas: ${buyer.vat_code}` : "", String(buyer.address || ""),
-    String(buyer.email || ""), String(buyer.phone || ""),
+  page.drawImage(logo, { x: 36, y: 774, width: 27 * logo.width / logo.height, height: 27 });
+  right(vatPayer ? 'PVM SĄSKAITA FAKTŪRA' : 'SĄSKAITA FAKTŪRA', 559, 786, 12, b);
+  line(757); line(706);
+  const meta = (label: string, value: string, x: number) => { t(label, x, 739, 7.5, f, grey); t(value, x, 721, 11, mono); };
+  meta('SERIJA IR NR.', inv.invoice_number, 36);
+  meta('IŠRAŠYMO DATA', ltDate(inv.issue_date), 211);
+  meta('UŽSAKYMO NR.', String(buyer.order_number || '—'), 390);
+  const block = (title: string, name: string, lines: string[], x: number) => {
+    t(title, x, 677, 7.5, f, grey); let y = 659;
+    for (const l of wrap(name, 242, b, 10.5)) { t(l, x, y, 10.5, b); y -= 14; }
+    y -= 3;
+    for (const value of lines.filter(Boolean)) for (const l of wrap(value, 242)) { t(l, x, y, 9); y -= 13; }
+    return y;
+  };
+  const sellerBottom = block('PARDAVĖJAS', String(s.company_name || '—'), [
+    s.company_code ? `Įm. k. ${s.company_code}` : '', s.vat_code ? `PVM kodas: ${s.vat_code}` : '', String(s.company_address || ''),
+    s.bank_name ? `Bankas: ${s.bank_name}` : '', s.bank_iban ? `A. s. ${s.bank_iban}` : '',
+  ], 36);
+  const buyerBottom = block('PIRKĖJAS', String(buyer.name || '—'), [
+    buyer.is_company && buyer.company_code ? `Įm. k. ${buyer.company_code}` : '',
+    buyer.is_company && buyer.vat_code ? `PVM kodas: ${buyer.vat_code}` : '', String(buyer.address || ''), String(buyer.email || ''), String(buyer.phone || ''),
   ], 310);
-
-  const y0 = 540;
-  page.drawRectangle({ x: 50, y: y0 - 6, width: 495, height: 22, color: rgb(0.94, 0.94, 0.94) });
-  t("Pavadinimas", 58, y0, 9.5, b); right("Kiekis", 330, y0, 9.5, b); right("Kaina be PVM", 430, y0, 9.5, b); right("Suma be PVM", 537, y0, 9.5, b);
+  const y0 = Math.min(sellerBottom, buyerBottom) - 30;
+  t('PAVADINIMAS', 36, y0, 7.5, f, grey); right('KIEKIS', 355, y0, 7.5); right('KAINA BE PVM', 457, y0, 7.5); right('SUMA BE PVM', 559, y0, 7.5);
+  line(y0 - 10, ink);
   const net = Number(inv.amount_without_vat), vat = Number(inv.vat_amount), total = Number(inv.total_amount);
-  t(inv.line_item, 58, y0 - 26); right("1 vnt.", 330, y0 - 26); right(eur(net), 430, y0 - 26); right(eur(net), 537, y0 - 26);
-  page.drawLine({ start: { x: 50, y: y0 - 38 }, end: { x: 545, y: y0 - 38 }, thickness: 0.5, color: grey });
-
-  let y = y0 - 62;
-  const sum = (k: string, v: string, bold = false) => { right(k, 430, y, 10, bold ? b : f); right(v, 537, y, 10, bold ? b : f); y -= 18; };
-  sum("Suma be PVM:", eur(net));
-  sum(`PVM (${vatPayer ? "21" : "0"} %):`, eur(vat));
-  sum("Iš viso mokėti:", eur(total), true);
-  if (!vatPayer) t(NON_VAT_NOTE, 50, y - 12, 9, f, grey);
-  t("Apmokėta per Montonio mokėjimų sistemą.", 50, y - 30, 9, f, grey);
-  t("Sąskaita sugeneruota elektroniniu būdu ir galioja be parašo.", 50, 60, 8.5, f, grey);
+  const itemLines = wrap(inv.line_item, 260);
+  itemLines.forEach((l, i) => t(l, 36, y0 - 29 - i * 13, 9));
+  right('1 vnt.', 355, y0 - 29, 9, mono); right(eur(net), 457, y0 - 29, 9, mono); right(eur(net), 559, y0 - 29, 9, mono);
+  const rowBottom = y0 - 43 - Math.max(0, itemLines.length - 1) * 13;
+  line(rowBottom);
+  let y = rowBottom - 28;
+  const sum = (k: string, v: string) => { t(k, 350, y, 9, f, grey); right(v, 559, y, 9, mono); y -= 19; };
+  sum('Suma be PVM:', eur(net)); sum(`PVM (${inv.vat_rate} %):`, eur(vat));
+  line(y + 6, ink, 350); y -= 13;
+  t('Iš viso mokėti:', 350, y, 11, b); right(eur(total), 559, y, 11, mono);
+  y -= 37;
+  if (!vatPayer) for (const l of wrap(NON_VAT_NOTE, 523, f, 8)) { t(l, 36, y, 8, f, grey); y -= 12; }
+  t('Apmokėta per Montonio mokėjimų sistemą.', 36, y, 8, f, grey);
+  const footerY = Math.min(y - 38, 160);
+  line(footerY);
+  t('padeliok.lt', 36, footerY - 20, 8.5, b);
+  right('Sąskaita sugeneruota elektroniniu būdu ir galioja be parašo.', 559, footerY - 20, 8);
   return doc.save();
 }
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { FileText, MessageSquare, Upload } from 'lucide-react';
+import { Eye, FileText, MessageSquare, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { shortName, type TeamOrder } from '@/lib/team-rules';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FILE_EXT, MAX_FILE_SIZE } from '@/lib/order-validation';
 
-export function OrderDetails({ order, onClose, openFile, invoice }: { order: TeamOrder; onClose: () => void; openFile: (path: string) => void; invoice?: { busy: boolean; download: () => void } | undefined }) {
+export function OrderDetails({ order, onClose, openFile, invoice }: { order: TeamOrder; onClose: () => void; openFile: (path: string) => void; invoice?: { busy: boolean; download: () => void; preview: () => void } | undefined }) {
   const qc = useQueryClient(); const [note, setNote] = useState(''); const [uploading, setUploading] = useState(false);
   const { data: logs, isLoading, error } = useQuery({ queryKey: ['order-audit', order.id], queryFn: async () => { const { data, error } = await supabase.from('order_audit_logs').select('*').eq('order_id', order.id).order('created_at', { ascending: false }); if (error) throw error; return data; } });
   const save = useMutation({ mutationFn: async () => { const { error } = await supabase.rpc('change_team_order', { order_uuid: order.id, note_text: note.trim() }); if (error) throw error; }, onSuccess: () => { setNote(''); qc.invalidateQueries({ queryKey: ['order-audit', order.id] }); toast.success('Pastaba išsaugota.'); }, onError: (e) => toast.error(e.message) });
@@ -25,7 +25,7 @@ export function OrderDetails({ order, onClose, openFile, invoice }: { order: Tea
   }
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)]">
     <DialogTitle>Užsakymas #{order.order_number}</DialogTitle><DialogDescription>{order.company_name || order.full_name} · {order.plan_name}</DialogDescription>
-    {invoice && <Button size="sm" variant="outline" className="w-fit" disabled={invoice.busy} onClick={invoice.download}><FileText className="h-4 w-4 mr-1" />{invoice.busy ? 'Ruošiama…' : 'Atsisiųsti SF (PDF)'}</Button>}
+    {invoice && <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={invoice.busy} onClick={invoice.preview}><Eye className="h-4 w-4 mr-1" />{invoice.busy ? 'Ruošiama…' : 'Peržiūrėti sąskaitą'}</Button><Button size="sm" variant="outline" disabled={invoice.busy} onClick={invoice.download}><FileText className="h-4 w-4 mr-1" />Atsisiųsti SF (PDF)</Button></div>}
     <dl className="grid gap-3 sm:grid-cols-2 text-sm">
       <div><dt className="text-muted-foreground">{(order.client_type === 'company' || order.client_type === 'juridinis') ? 'Įmonės pavadinimas' : 'Užsakovas'}</dt><dd>{order.company_name || order.full_name || '—'}</dd></div>
       {(order.client_type === 'company' || order.client_type === 'juridinis') && <div><dt className="text-muted-foreground">Įmonės kodas</dt><dd>{order.company_code || '—'}</dd></div>}
