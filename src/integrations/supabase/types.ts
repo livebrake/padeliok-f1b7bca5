@@ -156,6 +156,30 @@ export type Database = {
           },
         ]
       }
+      plan_prices: {
+        Row: {
+          id: string
+          name: string
+          plan_key: string
+          price: number
+          updated_at: string
+        }
+        Insert: {
+          id?: string
+          name: string
+          plan_key: string
+          price: number
+          updated_at?: string
+        }
+        Update: {
+          id?: string
+          name?: string
+          plan_key?: string
+          price?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
