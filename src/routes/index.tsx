@@ -127,7 +127,18 @@ function Btn({
   );
 }
 
+function usePlans(): Plan[] {
+  const [prices, setPrices] = useState<Record<string, number>>({});
+  useEffect(() => {
+    supabase.from("plan_prices").select("plan_key, price").then(({ data }) => {
+      if (data) setPrices(Object.fromEntries(data.map((r) => [r.plan_key, Number(r.price)])));
+    });
+  }, []);
+  return PLANS.map((p) => (prices[p.id] ? { ...p, price: prices[p.id] } : p));
+}
+
 function Index() {
+  const plans = usePlans();
   const [plan, setPlan] = useState<Plan | null>(null);
   const [doc, setDoc] = useState<null | "sutartis" | "privatumas">(null);
   const [done, setDone] = useState<string | false>(false);
@@ -216,7 +227,7 @@ function Index() {
         <p className="font-mono text-xs uppercase tracking-widest text-primary">Planai ir kainos</p>
         <h2 className="mt-2 text-3xl font-bold md:text-4xl">Pasirinkite analizės apimtį</h2>
         <div className="mt-10 grid gap-6 md:grid-cols-3">
-          {PLANS.map((p) => (
+          {plans.map((p) => (
             <div
               key={p.id}
               className={`relative flex flex-col rounded-lg border bg-card p-7 ${p.popular ? "border-primary shadow-lg" : "border-border"}`}
@@ -295,7 +306,7 @@ function Index() {
           {done ? (
             <Success orderId={done} onClose={() => setPlan(null)} />
           ) : (
-            <Order plan={plan} setPlan={setPlan} onPaid={(id) => setDone(id)} />
+            <Order plans={plans} plan={plans.find((x) => x.id === plan.id) ?? plan} setPlan={setPlan} onPaid={(id) => setDone(id)} />
           )}
         </Modal>
       )}
@@ -365,7 +376,7 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
 type CompanyKey = keyof typeof companySchema.shape;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
 
-function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
+function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
@@ -548,7 +559,7 @@ function Order({ plan, setPlan, onPaid }: { plan: Plan; setPlan: (p: Plan) => vo
         <h2 className="text-2xl font-bold">Krepšelis</h2>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">Pasirinktas planas:</span>
-          {PLANS.map((p) => (
+          {plans.map((p) => (
             <button
               type="button"
               key={p.id}
