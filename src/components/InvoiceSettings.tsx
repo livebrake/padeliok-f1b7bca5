@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { toast } from 'sonner';
 import { supabase } from '@/integrations/supabase/client';
-import { invoiceSettingsError } from '@/lib/invoice-settings-validation';
+import { invoiceSettingsErrors } from '@/lib/invoice-settings-validation';
 import { formatInvoiceNumber } from '@/lib/invoice-pdf';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -17,6 +17,8 @@ export function InvoiceSettings() {
   const [savedNumber, setSavedNumber] = useState(0);
   const [confirm, setConfirm] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [touched, setTouched] = useState<Set<string>>(new Set());
+  const [submitted, setSubmitted] = useState(false);
   useEffect(() => {
     supabase.from('invoice_settings').select('*').maybeSingle().then(({ data, error }) => {
       if (error || !data) { toast.error('Nepavyko įkelti sąskaitų nustatymų.'); return; }
@@ -28,12 +30,14 @@ export function InvoiceSettings() {
   const num = Number(f.last_number);
   const numValid = Number.isInteger(num) && num >= 0 && /^\d+$/.test(f.last_number);
 
-  const validate = () => {
-    const err = invoiceSettingsError(f);
-    if (err) { toast.error(err); return false; }
-    if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) { toast.error('Serija gali būti tik didžiosios raidės ir skaičiai.'); return false; }
-    return true;
-  };
+  const allErrors: Partial<Record<string, string>> = { ...invoiceSettingsErrors(f) };
+  if (!/^[A-Z0-9]{1,10}$/.test(f.series_prefix)) allErrors['series_prefix'] = 'Serija gali būti tik didžiosios raidės ir skaičiai';
+  const shown = (k: string) => (submitted || touched.has(k) ? allErrors[k] : undefined);
+  const hasShownErrors = Object.keys(allErrors).some(k => shown(k));
+  const touch = (k: string) => setTouched(t => (t.has(k) ? t : new Set(t).add(k)));
+  const validate = () => { setSubmitted(true); return Object.keys(allErrors).length === 0; };
+  const fieldError = (k: string) => { const m = shown(k); return m ? <p id={`inv-${k}-err`} className="text-xs text-destructive">{m}</p> : null; };
+  const errProps = (k: string) => (shown(k) ? { 'aria-invalid': true, 'aria-describedby': `inv-${k}-err`, className: 'border-destructive focus-visible:ring-destructive' } : {});
   const save = async (): Promise<void> => {
     if (!validate()) return;
     setSaving(true);
@@ -53,17 +57,17 @@ export function InvoiceSettings() {
       <div className="grid gap-4 sm:grid-cols-2">
         {FIELDS.map(([k, l]) => (
           <div key={k} className="space-y-1.5"><Label htmlFor={`inv-${k}`}>{l}</Label>
-            <Input id={`inv-${k}`} disabled={k === 'vat_code' && !f.is_vat_payer} value={f[k] as string} onChange={e => setF({ ...f, [k]: e.target.value })} /></div>
+            <Input id={`inv-${k}`} {...errProps(k)} disabled={k === 'vat_code' && !f.is_vat_payer} value={f[k] as string} onChange={e => { touch(k); setF({ ...f, [k]: e.target.value }); }} />{fieldError(k)}</div>
         ))}
         <div className="space-y-1.5"><Label htmlFor="inv-prefix">Serija</Label>
-          <Input id="inv-prefix" value={f.series_prefix} onChange={e => setF({ ...f, series_prefix: e.target.value.toUpperCase() })} /></div>
+          <Input id="inv-prefix" {...errProps('series_prefix')} value={f.series_prefix} onChange={e => { touch('series_prefix'); setF({ ...f, series_prefix: e.target.value.toUpperCase() }); }} />{fieldError('series_prefix')}</div>
         <div className="space-y-1.5"><Label htmlFor="inv-last">Paskutinis išrašytas numeris</Label>
-          <Input id="inv-last" inputMode="numeric" value={f.last_number} onChange={e => setF({ ...f, last_number: e.target.value.trim() })} />
+          <Input id="inv-last" inputMode="numeric" {...errProps('last_number')} value={f.last_number} onChange={e => { touch('last_number'); setF({ ...f, last_number: e.target.value.trim() }); }} />{fieldError('last_number')}
           <p className="text-xs text-muted-foreground">Sekanti automatinė sąskaita bus: {numValid ? formatInvoiceNumber(f.series_prefix, num + 1) : '—'}</p></div>
       </div>
       <div className="flex items-center gap-3"><Switch id="inv-vat" checked={f.is_vat_payer} onCheckedChange={v => setF({ ...f, is_vat_payer: v, vat_code: v ? f.vat_code : '' })} />
         <Label htmlFor="inv-vat">PVM mokėtojas (21 %)</Label></div>
-      <Button disabled={saving} onClick={() => { if (!validate()) return; if (num !== savedNumber) setConfirm(true); else void save(); }}>{saving ? 'Saugoma…' : 'Išsaugoti rekvizitus'}</Button>
+      <Button disabled={saving || hasShownErrors} onClick={() => { if (!validate()) return; if (num !== savedNumber) setConfirm(true); else void save(); }}>{saving ? 'Saugoma…' : 'Išsaugoti rekvizitus'}</Button>
       <AlertDialog open={confirm} onOpenChange={setConfirm}>
         <AlertDialogContent>
           <AlertDialogHeader><AlertDialogTitle>Pakeisti sąskaitų numeraciją?</AlertDialogTitle>
