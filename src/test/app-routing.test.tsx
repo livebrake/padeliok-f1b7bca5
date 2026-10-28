@@ -3,6 +3,12 @@ import { createMemoryHistory, createRouter, RouterProvider } from "@tanstack/rea
 import { cleanup, render, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+// The visitor gate is a server call; there is no server runtime in unit tests.
+vi.mock("@/lib/gate.functions", () => ({
+  getGateStatus: async () => ({ unlocked: true, preview: true }),
+  unlockSite: async () => ({ ok: true }),
+}));
+
 import { routeTree } from "@/routeTree.gen";
 
 function renderAt(path: string) {
