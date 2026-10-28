@@ -1,5 +1,6 @@
 import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
+import { getRequest } from "@tanstack/react-start/server";
 
 export const getPaymentMethods = createServerFn({ method: "GET" }).handler(async () => {
   try {
@@ -16,7 +17,7 @@ export const confirmPayment = createServerFn({ method: "POST" })
   .handler(async ({ data }) => {
     try {
       const { processOrderToken } = await import("@/lib/montonio.server");
-      return { ok: true as const, ...(await processOrderToken(data.token)) };
+      return { ok: true as const, ...(await processOrderToken(data.token, new URL(getRequest().url).origin)) };
     } catch (e) {
       console.error("confirm payment failed", e);
       return { ok: false as const, message: "Nepavyko patikrinti mokėjimo. Jei pinigai nuskaičiuoti, susisiekite info@padeliok.lt." };
