@@ -37,7 +37,7 @@ function TeamManager() {
   const qc = useQueryClient();
   const invite = useServerFn(inviteTeamMember);
   const resetPassword = useServerFn(resetTeamMemberPassword);
-  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
+  const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [role, setRole] = useState('employee');
   const [editing, setEditing] = useState<Member | null>(null);
   const { data: members, error, isLoading } = useQuery({ queryKey: ['team-management'], queryFn: async () => {
