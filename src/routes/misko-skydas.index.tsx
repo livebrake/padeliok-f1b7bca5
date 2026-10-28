@@ -145,6 +145,7 @@ function Dashboard() {
     setInvoiceBusy(orderId);
     try {
       const inv = await ensureInvoiceFn({ data: { orderId } });
+      if (inv.generated) toast.success('Sąskaita sėkmingai sugeneruota');
       downloadBlob(await invoicePdfBlob(inv), `${inv.invoice_number}.pdf`);
     } catch (e) { toast.error(e instanceof Error ? e.message : 'Nepavyko paruošti sąskaitos.'); } finally { setInvoiceBusy(null); }
   }

@@ -3,6 +3,7 @@ export async function fulfillPaidOrder(orderId: string) {
   const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
   const { data: invoice, error: invoiceError } = await supabaseAdmin.rpc('issue_invoice', { order_uuid: orderId });
   if (invoiceError || !invoice) throw invoiceError ?? new Error('Nepavyko išrašyti sąskaitos.');
+  console.info('payment.invoice_ready', { orderId, invoiceId: invoice.id, invoiceNumber: invoice.invoice_number });
 
   const claimedAt = new Date().toISOString();
   const staleAt = new Date(Date.now() - 5 * 60_000).toISOString();
@@ -12,7 +13,10 @@ export async function fulfillPaidOrder(orderId: string) {
     .or(`payment_email_claimed_at.is.null,payment_email_claimed_at.lt.${staleAt}`)
     .select('*').maybeSingle();
   if (claimError) throw claimError;
-  if (!order) return;
+  if (!order) {
+    console.info('payment.email_skipped', { orderId, reason: 'already_sent_or_processing' });
+    return;
+  }
 
   try {
     const fileLinks: { name: string; url: string }[] = [];
@@ -33,6 +37,7 @@ export async function fulfillPaidOrder(orderId: string) {
       .eq('id', orderId).eq('payment_email_claimed_at', claimedAt);
     if (error) throw error;
   } catch (error) {
+    console.error('payment.pdf_or_email_failed', { orderId, invoiceId: invoice.id, error });
     // Failed sends must not permanently consume the slot; provider idempotency protects retries.
     const { error: releaseError } = await supabaseAdmin.from('orders').update({ payment_email_claimed_at: null })
       .eq('id', orderId).eq('payment_email_claimed_at', claimedAt);
