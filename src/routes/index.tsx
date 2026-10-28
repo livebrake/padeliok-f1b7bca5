@@ -134,7 +134,7 @@ function usePlans(): Plan[] {
       if (data) setPrices(Object.fromEntries(data.map((r) => [r.plan_key, Number(r.price)])));
     });
   }, []);
-  return PLANS.map((p) => (prices[p.id] ? { ...p, price: prices[p.id] } : p));
+  return PLANS.map((p) => ({ ...p, price: prices[p.id] ?? p.price }));
 }
 
 function Index() {
