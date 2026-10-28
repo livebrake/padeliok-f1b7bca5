@@ -11,7 +11,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { FILE_EXT, MAX_FILE_SIZE } from '@/lib/order-validation';
 
-export function OrderDetails({ order, onClose, openFile, invoice }: { order: TeamOrder; onClose: () => void; openFile: (path: string) => void; invoice?: { busy: boolean; download: () => void } }) {
+export function OrderDetails({ order, onClose, openFile, invoice }: { order: TeamOrder; onClose: () => void; openFile: (path: string) => void; invoice?: { busy: boolean; download: () => void } | undefined }) {
   const qc = useQueryClient(); const [note, setNote] = useState(''); const [uploading, setUploading] = useState(false);
   const { data: logs, isLoading, error } = useQuery({ queryKey: ['order-audit', order.id], queryFn: async () => { const { data, error } = await supabase.from('order_audit_logs').select('*').eq('order_id', order.id).order('created_at', { ascending: false }); if (error) throw error; return data; } });
   const save = useMutation({ mutationFn: async () => { const { error } = await supabase.rpc('change_team_order', { order_uuid: order.id, note_text: note.trim() }); if (error) throw error; }, onSuccess: () => { setNote(''); qc.invalidateQueries({ queryKey: ['order-audit', order.id] }); toast.success('Pastaba išsaugota.'); }, onError: (e) => toast.error(e.message) });
