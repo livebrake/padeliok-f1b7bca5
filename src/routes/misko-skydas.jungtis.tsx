@@ -34,14 +34,17 @@ function Login({ warning }: { warning?: string } = {}) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   async function submit(e: React.FormEvent) {
     e.preventDefault();
     if (busy) return;
+    setErrorMessage('');
     setBusy(true);
     try {
     const { data, error } = await withRequestTimeout(supabase.auth.signInWithPassword({ email, password }), 15000);
     if (error || !data.user) {
+      setErrorMessage('Neteisingas el. paštas arba slaptažodis.');
       toast.error("Neteisingas el. paštas arba slaptažodis.");
       return;
     }
@@ -54,6 +57,7 @@ function Login({ warning }: { warning?: string } = {}) {
     }
     await navigate({ to: "/misko-skydas", replace: true });
     } catch {
+      setErrorMessage('Nepavyko prisijungti. Patikrinkite ryšį ir bandykite dar kartą.');
       toast.error('Nepavyko prisijungti. Patikrinkite ryšį ir bandykite dar kartą.');
     } finally { setBusy(false); }
   }
@@ -64,7 +68,7 @@ function Login({ warning }: { warning?: string } = {}) {
         <div>
           <h1 className="text-xl font-bold">Komandos prisijungimas</h1>
           <p className="text-sm text-muted-foreground">Įveskite savo prisijungimo duomenis.</p>
-          {warning && <p role="alert" className="mt-2 text-sm text-destructive">{warning}</p>}
+          {(errorMessage || warning) && <p role="alert" className="mt-2 text-sm text-destructive">{errorMessage || warning}</p>}
         </div>
         <div className="space-y-2">
           <Label htmlFor="email">El. paštas</Label>
