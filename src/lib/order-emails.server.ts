@@ -97,16 +97,19 @@ export async function sendOrderEmails(d: OrderEmailData) {
   const { renderInvoicePdf, toBase64 } = await import('@/lib/invoice-pdf');
   const { invoiceServerFonts } = await import('@/lib/invoice-fonts.server');
   const attachment = { filename: `${d.invoice.invoice_number}.pdf`, content: toBase64(await renderInvoicePdf(d.invoice, invoiceServerFonts())) };
+  console.info('payment.pdf_ready', { orderId: d.invoice.order_id, invoiceId: d.invoice.id });
   // Stable message bodies and separate keys allow partial-send retries without duplicates.
   await send(apiKey, from, `paid-client-${d.invoice.id}`, {
     to: [d.email], reply_to: TEAM_EMAIL,
     subject: `Jūsų užsakymas #${d.orderNumber} priimtas | padeliok.lt`,
     html: clientHtml(d), attachments: [attachment],
   });
+  console.info('payment.confirmation_dispatched', { orderId: d.invoice.order_id, invoiceId: d.invoice.id, pdfAttached: true });
   await send(apiKey, from, `paid-team-${d.invoice.id}`, {
         to: [TEAM_EMAIL],
         reply_to: d.email,
         subject: `Naujas užsakymas #${d.orderNumber} - ${d.planName}`,
         html: teamHtml(d),
       });
+  console.info('payment.team_notification_dispatched', { orderId: d.invoice.order_id, invoiceId: d.invoice.id });
 }

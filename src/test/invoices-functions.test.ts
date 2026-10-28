@@ -24,12 +24,12 @@ describe('super-admin invoice backfill', () => {
   it('issues a missing paid-order invoice before returning the row for download', async () => {
     const invoice = { id: 'new-invoice', invoice_number: 'PAD0002' };
     mocks.adminRpc.mockResolvedValue({ data: invoice, error: null });
-    await expect(invoke('super_admin')).resolves.toEqual(invoice);
+    await expect(invoke('super_admin')).resolves.toEqual({ ...invoice, generated: true });
     expect(mocks.adminRpc).toHaveBeenCalledWith('issue_invoice', { order_uuid: 'paid-order' });
   });
   it('returns an existing invoice without issuing another one', async () => {
     const invoice = { id: 'existing-invoice' };
-    await expect(invoke('super_admin', invoice)).resolves.toEqual(invoice);
+    await expect(invoke('super_admin', invoice)).resolves.toEqual({ ...invoice, generated: false });
     expect(mocks.adminRpc).not.toHaveBeenCalled();
   });
   it('denies employees before any privileged invoice operation', async () => {

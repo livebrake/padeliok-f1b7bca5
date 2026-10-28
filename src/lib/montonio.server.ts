@@ -88,6 +88,9 @@ export async function processOrderToken(token: string, origin: string): Promise<
       .update({ payment_status: "PAID", paid_at: new Date().toISOString(), montonio_uuid: p.uuid ?? order.montonio_uuid })
       .eq("id", order.id);
     if (error) throw error;
+    console.info('montonio.payment_paid', { orderId: order.id, paymentStatus: 'PAID' });
+  } else {
+    console.info('montonio.payment_already_paid', { orderId: order.id });
   }
   try {
     const { fulfillPaidOrder } = await import('@/lib/paid-order.server');
