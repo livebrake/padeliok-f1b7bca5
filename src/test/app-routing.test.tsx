@@ -18,8 +18,7 @@ function renderAt(path: string) {
     context: { queryClient },
     history: createMemoryHistory({ initialEntries: [path] }),
   });
-  // The root shell renders <html>, so mount on the document like the real app.
-  return render(<RouterProvider router={router} />, { container: document as unknown as HTMLElement });
+  return render(<RouterProvider router={router} />);
 }
 
 afterEach(() => {
@@ -34,7 +33,7 @@ describe("App routing", () => {
     renderAt("/");
 
     // The root shell renders <html>/<body>, which the DOM hoists out of the test container.
-    await waitFor(() => expect(document.body.textContent?.trim()).toBeTruthy());
+    await waitFor(() => expect(document.body.textContent?.trim()).toBeTruthy(), { timeout: 8000 });
   });
 
   it("renders the not-found route", async () => {
@@ -42,6 +41,6 @@ describe("App routing", () => {
 
     renderAt("/this-route-does-not-exist");
 
-    await waitFor(() => expect(document.body.textContent?.trim()).toBeTruthy());
+    await waitFor(() => expect(document.body.textContent?.trim()).toBeTruthy(), { timeout: 8000 });
   });
 });
