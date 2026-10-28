@@ -1,4 +1,4 @@
-- [ ] Update invoice PDF to the supplied template and add authenticated preview/download; verify actual paid-order flow.
+- [x] Update invoice PDF to supplied template with embedded Satoshi/IBM Plex Mono and logo; authenticated paid-order list/details previews and PDF download verified on desktop/mobile, 15 invoice/delivery tests passed.
 - [x] Add required indicators and shared checkout validation with conditional VAT.
 - [x] Add required terms agreement and preserve checkout when opening terms.
 - [x] Test rules (12 passed) and verify complete checkout flow (PAD-1002). Existing routing smoke tests fail because the document shell renders outside their container; unrelated to checkout.
