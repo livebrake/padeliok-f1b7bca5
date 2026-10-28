@@ -130,9 +130,10 @@ function Btn({
 function usePlans(): Plan[] {
   const [prices, setPrices] = useState<Record<string, number>>({});
   useEffect(() => {
-    supabase.from("plan_prices").select("plan_key, price").then(({ data }) => {
-      if (data) setPrices(Object.fromEntries(data.map((r) => [r.plan_key, Number(r.price)])));
-    });
+    // Default prices stay visible until (and unless) the database answers.
+    Promise.resolve(supabase.from("plan_prices").select("plan_key, price")).then(({ data }) => {
+      if (data) setPrices(Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, Number(r.price)])));
+    }, () => undefined);
   }, []);
   return PLANS.map((p) => ({ ...p, price: prices[p.id] ?? p.price }));
 }

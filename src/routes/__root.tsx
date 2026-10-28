@@ -81,7 +81,8 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   beforeLoad: async ({ location }) => {
     const path = location.pathname;
     if (path === "/greitai" || path.startsWith("/misko-skydas") || path.startsWith("/order-")) return;
-    const { unlocked } = await getGateStatus();
+    // Fail closed: if the gate check cannot run, show the locked page instead of crashing.
+    const unlocked = await getGateStatus().then((r) => r.unlocked, () => false);
     if (!unlocked) throw redirect({ to: "/greitai" });
   },
   head: () => ({

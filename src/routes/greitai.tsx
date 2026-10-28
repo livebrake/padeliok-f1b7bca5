@@ -8,7 +8,8 @@ import { getGateStatus, unlockSite } from "@/lib/gate.functions";
 
 export const Route = createFileRoute("/greitai")({
   beforeLoad: async () => {
-    const { preview } = await getGateStatus();
+    // If the check cannot run, stay on the locked page rather than failing.
+    const preview = await getGateStatus().then((r) => r.preview, () => false);
     if (preview) throw redirect({ to: "/" });
   },
   head: () => ({
