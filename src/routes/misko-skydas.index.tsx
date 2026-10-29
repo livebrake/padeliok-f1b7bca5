@@ -41,7 +41,7 @@ const label = (s: string) => STATUSES.find((x) => x.id === s)?.label ?? s;
 const statusCls = (s: string) => STATUSES.find((x) => x.id === s)?.cls ?? "";
 const isCo = (t: string) => t === "company" || t === "juridinis";
 
-type SortKey = "created_at" | "full_name" | "phone" | "plan_name";
+type SortKey = "created_at" | "full_name" | "phone" | "plan_name" | "payment_status";
 type SortDir = "asc" | "desc";
 type Preset = "viskas" | "savaitė" | "mėnuo" | "metai" | "data" | "intervalas";
 
@@ -342,7 +342,7 @@ function Dashboard() {
                 <SortableHead id="phone">Telefonas</SortableHead>
                 <SortableHead id="plan_name">Planas</SortableHead>
                 <TableHead>Failai</TableHead>
-                <TableHead>Apmokėjimas</TableHead>
+                <SortableHead id="payment_status">Apmokėjimas</SortableHead>
                 <TableHead>Būsena</TableHead>
               </TableRow>
             </TableHeader>
