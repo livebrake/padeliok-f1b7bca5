@@ -43,7 +43,7 @@ function Success() {
             <h1 className="mt-4 font-display text-2xl font-bold">Ačiū! Mokėjimas gautas</h1>
             <p className="mt-2 text-muted-foreground">Užsakymo numeris</p>
             <p className="font-display text-3xl font-bold">#{state.order}</p>
-            <p className="mt-4 text-sm text-muted-foreground">Patvirtinimą išsiuntėme el. paštu. Susisieksime per 48–72 val.</p>
+            <p className="mt-4 text-sm text-muted-foreground">Patvirtinimą išsiuntėme el. paštu. Susisieksime per 72–96 val.</p>
           </>
         ) : state.error ? (
           <>
