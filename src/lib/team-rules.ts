@@ -36,3 +36,14 @@ export function inPeriod(o: { paid_at?: string | null; created_at: string }, p: 
   const t = new Date(o.paid_at ?? o.created_at).getTime();
   return t >= r[0].getTime() && t < r[1].getTime();
 }
+export const PLAN_KEYS = ['Bazinis', 'Standartinis', 'Premium'] as const;
+/** Paid-order count, revenue and revenue share per package. */
+export function planBreakdown(orders: { payment_status: string; price?: unknown; plan_name: string }[]) {
+  const paid = orders.filter(o => paymentLabel(o.payment_status) === 'Apmokėta');
+  const total = paid.reduce((s, o) => s + toPrice(o.price), 0);
+  return PLAN_KEYS.map(name => {
+    const list = paid.filter(o => o.plan_name.trim().toLowerCase() === name.toLowerCase());
+    const revenue = list.reduce((s, o) => s + toPrice(o.price), 0);
+    return { name, count: list.length, revenue, share: total ? (revenue / total) * 100 : 0 };
+  });
+}
