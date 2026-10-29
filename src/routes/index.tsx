@@ -215,7 +215,7 @@ function Index() {
             Išvenkite brangių klaidų. Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių
             analizė.
           </p>
-          <div className="mt-8 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <div className="mt-8 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2">
             {[
               [UserCheck, "Tikrina specialistai, ne algoritmai"],
               [ShieldCheck, "Rizikų ir statybos ribojimų įvertinimas"],
