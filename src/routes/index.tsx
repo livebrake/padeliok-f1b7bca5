@@ -28,6 +28,8 @@ import {
   Phone,
   ArrowRight,
   Loader2,
+  UserCheck,
+  ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
 import { submitOrder } from "@/lib/orders.functions";
@@ -213,19 +215,20 @@ function Index() {
             Išvenkite brangių klaidų. Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių
             analizė.
           </p>
-          <div className="mt-8 flex flex-wrap gap-3">
+          <div className="mt-8 grid max-w-3xl grid-cols-1 gap-3 sm:grid-cols-2 lg:grid-cols-4">
             {[
-              [MapPin, "Rizikų ir statybos ribojimų įvertinimas"],
+              [UserCheck, "Tikrina specialistai, ne algoritmai"],
+              [ShieldCheck, "Rizikų ir statybos ribojimų įvertinimas"],
               [Clock, "Atsakymas per 72–96 val."],
-              [FileText, "Aiški specialisto išvada (PDF)"],
+              [FileText, "Interaktyvi ekspertų ataskaita"],
             ].map(([I, t]) => {
               const Icon = I as typeof MapPin;
               return (
                 <span
                   key={t as string}
-                  className="inline-flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"
+                  className="flex items-center gap-2 rounded-md border border-border bg-card px-3 py-2 text-sm"
                 >
-                  <Icon className="h-4 w-4 text-success" />
+                  <Icon className="h-4 w-4 shrink-0 text-success" />
                   {t as string}
                 </span>
               );
