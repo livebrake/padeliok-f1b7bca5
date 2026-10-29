@@ -32,11 +32,11 @@ import {
 import { toast } from "sonner";
 import { submitOrder } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
-import { withRequestTimeout } from '@/lib/request-timeout';
+import { withRequestTimeout } from "@/lib/request-timeout";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC =
-  "Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 48–72 val.";
+  "Profesionalų atliekama sklypo apribojimų, komunikacijų ir statybos galimybių analizė prieš perkant sklypą. Atsakymas per 72–96 val.";
 
 export const Route = createFileRoute("/")({
   head: () => ({
@@ -134,11 +134,22 @@ function usePlans(): Plan[] {
     // Default prices stay visible until (and unless) the database answers.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
-    Promise.resolve(supabase.from("plan_prices").select("plan_key, price").abortSignal(controller.signal)).then(({ data }) => {
-      if (controller.signal.aborted) return;
-      if (data) setPrices(Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, Number(r.price)])));
-    }, () => undefined).finally(() => clearTimeout(timer));
-    return () => { controller.abort(); clearTimeout(timer); };
+    Promise.resolve(supabase.from("plan_prices").select("plan_key, price").abortSignal(controller.signal))
+      .then(
+        ({ data }) => {
+          if (controller.signal.aborted) return;
+          if (data)
+            setPrices(
+              Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, Number(r.price)])),
+            );
+        },
+        () => undefined,
+      )
+      .finally(() => clearTimeout(timer));
+    return () => {
+      controller.abort();
+      clearTimeout(timer);
+    };
   }, []);
   return PLANS.map((p) => ({ ...p, price: prices[p.id] ?? p.price }));
 }
@@ -205,7 +216,7 @@ function Index() {
           <div className="mt-8 flex flex-wrap gap-3">
             {[
               [MapPin, "Rizikų ir statybos ribojimų įvertinimas"],
-              [Clock, "Atsakymas per 48–72 val."],
+              [Clock, "Atsakymas per 72–96 val."],
               [FileText, "Aiški specialisto išvada (PDF)"],
             ].map(([I, t]) => {
               const Icon = I as typeof MapPin;
@@ -274,7 +285,7 @@ function Index() {
           {[
             ["1. Užsakote", "Pasirenkate planą ir įkeliate Registrų centro išrašą bei sklypo ribų planą."],
             ["2. Specialistai analizuoja", "Tikrinami teritorijų planavimo dokumentai, apribojimai ir komunikacijos."],
-            ["3. Gaunate išvadą", "Per 48–72 val. el. paštu gaunate aiškią PDF išvadą."],
+            ["3. Gaunate išvadą", "Per 72–96 val. el. paštu gaunate aiškią PDF išvadą."],
           ].map(([t, d]) => (
             <div key={t}>
               <h3 className="font-semibold">{t}</h3>
@@ -312,7 +323,12 @@ function Index() {
           {done ? (
             <Success orderId={done} onClose={() => setPlan(null)} />
           ) : (
-            <Order plans={plans} plan={plans.find((x) => x.id === plan.id) ?? plan} setPlan={setPlan} onPaid={(id) => setDone(id)} />
+            <Order
+              plans={plans}
+              plan={plans.find((x) => x.id === plan.id) ?? plan}
+              setPlan={setPlan}
+              onPaid={(id) => setDone(id)}
+            />
           )}
         </Modal>
       )}
@@ -326,7 +342,7 @@ function Index() {
               {doc === "sutartis" ? (
                 <>
                   <p>
-                    Paslaugos teikėjas įsipareigoja per 48–72 darbo valandas nuo apmokėjimo ir dokumentų gavimo pateikti
+                    Paslaugos teikėjas įsipareigoja per 72–96 darbo valandas nuo apmokėjimo ir dokumentų gavimo pateikti
                     sklypo galimybių analizės išvadą PDF formatu.
                   </p>
                   <p>
@@ -385,7 +401,17 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
 type CompanyKey = keyof typeof companySchema.shape;
 const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
 
-function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; setPlan: (p: Plan) => void; onPaid: (id: string) => void }) {
+function Order({
+  plans,
+  plan,
+  setPlan,
+  onPaid,
+}: {
+  plans: Plan[];
+  plan: Plan;
+  setPlan: (p: Plan) => void;
+  onPaid: (id: string) => void;
+}) {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [rc, setRc] = useState<File[]>([]);
   const [ribos, setRibos] = useState<File[]>([]);
@@ -400,16 +426,20 @@ function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; se
   const [methodsError, setMethodsError] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    withRequestTimeout(getPaymentMethods()).then((r) => {
-      if (!active) return;
-      setMethods(r.methods);
-      setMethodsError(r.error);
-    }).catch(() => {
-      if (!active) return;
-      setMethods([]);
-      setMethodsError('Nepavyko įkelti mokėjimo būdų. Bandykite dar kartą.');
-    });
-    return () => { active = false; };
+    withRequestTimeout(getPaymentMethods())
+      .then((r) => {
+        if (!active) return;
+        setMethods(r.methods);
+        setMethodsError(r.error);
+      })
+      .catch(() => {
+        if (!active) return;
+        setMethods([]);
+        setMethodsError("Nepavyko įkelti mokėjimo būdų. Bandykite dar kartą.");
+      });
+    return () => {
+      active = false;
+    };
   }, []);
   const isCo = clientType === "juridinis";
   const all = [...rc, ...ribos];
@@ -797,7 +827,7 @@ function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; se
           <span>Iš viso</span>
           <span>{plan.price} €</span>
         </div>
-        <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 48–72 val.</p>
+        <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 72–96 val.</p>
         <div data-validation-field="paymentMethod" className="flex flex-col gap-2">
           <p className="text-sm font-semibold">
             Mokėjimo būdas <span className="text-destructive">*</span>
@@ -826,17 +856,25 @@ function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; se
                     clear("paymentMethod");
                   }}
                   className={`flex h-12 items-center justify-center rounded-md border bg-card p-2 transition ${
-                    method === m.code ? "border-primary ring-2 ring-primary" : errors["paymentMethod"] ? "border-destructive" : "border-border hover:border-primary/50"
+                    method === m.code
+                      ? "border-primary ring-2 ring-primary"
+                      : errors["paymentMethod"]
+                        ? "border-destructive"
+                        : "border-border hover:border-primary/50"
                   } ${m.kind === "card" ? "col-span-3 h-auto flex-col gap-1 py-2 text-xs font-medium" : ""}`}
                 >
-                  {m.logoUrl && <img src={m.logoUrl} alt="" className="max-h-7 max-w-full object-contain" loading="lazy" />}
+                  {m.logoUrl && (
+                    <img src={m.logoUrl} alt="" className="max-h-7 max-w-full object-contain" loading="lazy" />
+                  )}
                   {m.kind === "card" && <span>{m.name}</span>}
                 </button>
               ))}
             </div>
           )}
           {errors["paymentMethod"] && (
-            <p role="alert" className="text-xs text-destructive">{errors["paymentMethod"]}</p>
+            <p role="alert" className="text-xs text-destructive">
+              {errors["paymentMethod"]}
+            </p>
           )}
         </div>
         <div data-validation-field="agreement" className="mt-auto flex items-start gap-2 text-sm">
@@ -914,7 +952,11 @@ function Order({ plans, plan, setPlan, onPaid }: { plans: Plan[]; plan: Plan; se
           {paying ? (
             <span className="inline-flex items-center justify-center gap-2">
               <Loader2 className="h-4 w-4 animate-spin" />
-              {phase === "upload" ? "Įkeliami failai…" : phase === "redirect" ? "Nukreipiama į mokėjimą…" : "Siunčiama…"}
+              {phase === "upload"
+                ? "Įkeliami failai…"
+                : phase === "redirect"
+                  ? "Nukreipiama į mokėjimą…"
+                  : "Siunčiama…"}
             </span>
           ) : (
             "Pateikti ir apmokėti"
