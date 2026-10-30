@@ -98,7 +98,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
   );
 }
 
-export function DiscountStats({ summary }: { summary: { total: number; count: number; byPlan: { name: string; count: number; total: number }[]; byCode: { code: string; count: number; total: number }[] } }) {
+export function DiscountStats({ summary }: { summary: { total: number; count: number; byPlan: { name: string; count: number; total: number }[]; byCode: { code: string; count: number; total: number; note?: string | null }[] } }) {
   const [notes, setNotes] = useState<Record<string, string>>({});
   useEffect(() => { void supabase.from("promo_codes").select("code,note").then(({ data }) => setNotes(Object.fromEntries((data ?? []).filter(r => r.note).map(r => [r.code, r.note!])))); }, []);
   return (

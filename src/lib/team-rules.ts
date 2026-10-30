@@ -48,13 +48,13 @@ export function planBreakdown(orders: { payment_status: string; price?: unknown;
   });
 }
 /** Discounts granted on paid orders, with per-plan and per-code breakdowns. Uses order snapshots only. */
-export function discountSummary(orders: { payment_status: string; plan_name: string; promo_code?: string | null; discount_amount?: unknown }[]) {
+export function discountSummary(orders: { payment_status: string; plan_name: string; promo_code?: string | null; promo_note?: string | null; discount_amount?: unknown }[]) {
   const used = orders.filter(o => paymentLabel(o.payment_status) === 'Apmokėta' && o.promo_code);
   const sum = (l: typeof used) => l.reduce((s, o) => s + toPrice(o.discount_amount), 0);
   const codes = [...new Set(used.map(o => o.promo_code!))].sort();
   return {
     total: sum(used), count: used.length,
     byPlan: PLAN_KEYS.map(name => { const l = used.filter(o => o.plan_name.trim().toLowerCase() === name.toLowerCase()); return { name, count: l.length, total: sum(l) }; }),
-    byCode: codes.map(code => { const l = used.filter(o => o.promo_code === code); return { code, count: l.length, total: sum(l) }; }),
+    byCode: codes.map(code => { const l = used.filter(o => o.promo_code === code); const note = l.find(o => o.promo_note)?.promo_note ?? null; return { code, count: l.length, total: sum(l), note }; }),
   };
 }
