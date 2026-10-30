@@ -41,12 +41,12 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
       code, prefix: normalizeCode(f.prefix), discount_type: f.type, discount_value: value,
       valid_from: f.from ? new Date(`${f.from}T00:00:00`).toISOString() : null,
       valid_to: f.to ? new Date(`${f.to}T23:59:59`).toISOString() : null,
-      max_uses: max, plan_key: f.plan === "all" ? null : f.plan,
+      max_uses: max, plan_key: null, plan_keys: plans.length ? plans : null,
     });
     setSaving(false);
     if (error) return void toast.error(error.code === "23505" ? "Toks kodas jau egzistuoja." : "Nepavyko sukurti kodo.");
     toast.success("Nuolaidos kodas sukurtas");
-    setF(empty); void load();
+    setF(empty); setPlans([]); void load();
   };
   const toggle = async (p: Promo, v: boolean) => {
     const { error } = await supabase.from("promo_codes").update({ is_active: v }).eq("id", p.id);
@@ -69,7 +69,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
         <tr key={p.id} className="border-t">
           <td className="py-2 font-mono">{p.code}</td>
           <td>{p.discount_type === "percent" ? `${Number(p.discount_value)}%` : formatEur(Number(p.discount_value))}</td>
-          <td>{PLAN_OPTS.find(o => o[0] === (p.plan_key ?? "all"))?.[1]}</td>
+          <td>{promoPlans(p).length ? promoPlans(p).map(planName).join(", ") : "Visi planai"}</td>
           <td>{fmtDate(p.valid_from)} – {fmtDate(p.valid_to)}</td>
           <td>{used(p.id)}{p.max_uses ? ` / ${p.max_uses}` : " / ∞"}</td>
           <td><Switch checked={p.is_active} onCheckedChange={v => void toggle(p, v)} aria-label={`Aktyvus ${p.code}`} /></td>
@@ -88,7 +88,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
         <div className="space-y-1"><Label>Galioja nuo</Label><Input type="date" value={f.from} onChange={e => set("from")(e.target.value)} /></div>
         <div className="space-y-1"><Label>Galioja iki</Label><Input type="date" value={f.to} onChange={e => set("to")(e.target.value)} /></div>
         <div className="space-y-1"><Label>Panaudojimų limitas</Label><Input inputMode="numeric" value={f.max} onChange={e => set("max")(e.target.value)} placeholder="Neribota" /></div>
-        <div className="space-y-1"><Label>Planas</Label><Select value={f.plan} onValueChange={set("plan")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent>{PLAN_OPTS.map(([v, l]) => <SelectItem key={v} value={v}>{l}</SelectItem>)}</SelectContent></Select></div>
+        <div className="space-y-1"><Label>Planai</Label><PlanMultiSelect value={plans} onChange={setPlans} /></div>
       </div>
       <p className="text-xs text-muted-foreground">Galutinis kodas: <span className="font-mono">{normalizeCode(f.prefix) + normalizeCode(f.code) || "—"}</span>. Tuščios datos ir limitas – neribota.</p>
       <Button onClick={() => void create()} disabled={saving}>Sukurti kodą</Button>
