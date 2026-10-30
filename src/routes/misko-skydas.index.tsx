@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { matchesOrderQuery } from "@/lib/order-search";
-import { WORK_STATUSES, canManageTeam, financeSummary, formatEur, FINANCE_PERIODS, inPeriod, type FinancePeriod, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
+import { WORK_STATUSES, canManageTeam, financeSummary, discountSummary, formatEur, FINANCE_PERIODS, inPeriod, type FinancePeriod, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
 import { TeamManagement } from '@/components/TeamManagement';
 import { OrderDetails } from '@/components/OrderDetails';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
