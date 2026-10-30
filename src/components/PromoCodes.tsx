@@ -13,7 +13,7 @@ import { formatEur, paymentLabel, type TeamOrder } from "@/lib/team-rules";
 import { PlanMultiSelect, planName } from "@/components/PlanMultiSelect";
 
 type Promo = Tables<"promo_codes">;
-const empty = { prefix: "", code: "", type: "percent", value: "", from: "", to: "", max: "" };
+const empty = { note: "", code: "", type: "percent", value: "", from: "", to: "", max: "" };
 
 export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
   const [plans, setPlans] = useState<string[]>([]);
@@ -29,7 +29,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
   const set = (k: keyof typeof empty) => (v: string) => setF(p => ({ ...p, [k]: v }));
 
   const create = async () => {
-    const code = normalizeCode(normalizeCode(f.prefix) + normalizeCode(f.code));
+    const code = normalizeCode(f.code);
     const value = Number(f.value.replace(",", "."));
     const max = f.max.trim() ? Number(f.max) : null;
     if (!/^[A-Z0-9-]{3,40}$/.test(code)) return void toast.error("Kodas: 3–40 simbolių (raidės, skaičiai, brūkšnelis).");
@@ -38,7 +38,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
     if (f.from && f.to && f.from > f.to) return void toast.error("Pabaigos data turi būti vėlesnė už pradžios.");
     setSaving(true);
     const { error } = await supabase.from("promo_codes").insert({
-      code, prefix: normalizeCode(f.prefix), discount_type: f.type, discount_value: value,
+      code, note: f.note.trim() || null, discount_type: f.type, discount_value: value,
       valid_from: f.from ? new Date(`${f.from}T00:00:00`).toISOString() : null,
       valid_to: f.to ? new Date(`${f.to}T23:59:59`).toISOString() : null,
       max_uses: max, plan_key: null, plan_keys: plans.length ? plans : null,
@@ -67,7 +67,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
       <thead className="text-left text-muted-foreground"><tr><th className="py-2">Kodas</th><th>Nuolaida</th><th>Planas</th><th>Galioja</th><th>Panaudota</th><th>Aktyvus</th><th /></tr></thead>
       <tbody>{items.map(p => (
         <tr key={p.id} className="border-t">
-          <td className="py-2 font-mono">{p.code}</td>
+          <td className="py-2"><div className="font-mono">{p.code}</div>{p.note && <div className="text-xs text-muted-foreground">{p.note}</div>}</td>
           <td>{p.discount_type === "percent" ? `${Number(p.discount_value)}%` : formatEur(Number(p.discount_value))}</td>
           <td>{promoPlans(p).length ? promoPlans(p).map(planName).join(", ") : "Visi planai"}</td>
           <td>{fmtDate(p.valid_from)} – {fmtDate(p.valid_to)}</td>
@@ -81,7 +81,6 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
     <section className="space-y-4 rounded-xl border bg-card p-5">
       <h3 className="font-bold">Nuolaidų kodai</h3>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-        <div className="space-y-1"><Label>Priešdėlis</Label><Input value={f.prefix} onChange={e => set("prefix")(e.target.value)} placeholder="PARTNERIS-" className="font-mono uppercase" /></div>
         <div className="space-y-1"><Label>Kodas</Label><Input value={f.code} onChange={e => set("code")(e.target.value)} placeholder="JONAS10" className="font-mono uppercase" /></div>
         <div className="space-y-1"><Label>Nuolaidos tipas</Label><Select value={f.type} onValueChange={set("type")}><SelectTrigger><SelectValue /></SelectTrigger><SelectContent><SelectItem value="percent">Procentai (%)</SelectItem><SelectItem value="fixed">Fiksuota suma (€)</SelectItem></SelectContent></Select></div>
         <div className="space-y-1"><Label>Dydis ({f.type === "percent" ? "%" : "€"})</Label><Input inputMode="decimal" value={f.value} onChange={e => set("value")(e.target.value)} /></div>
@@ -89,8 +88,9 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
         <div className="space-y-1"><Label>Galioja iki</Label><Input type="date" value={f.to} onChange={e => set("to")(e.target.value)} /></div>
         <div className="space-y-1"><Label>Panaudojimų limitas</Label><Input inputMode="numeric" value={f.max} onChange={e => set("max")(e.target.value)} placeholder="Neribota" /></div>
         <div className="space-y-1"><Label>Planai</Label><PlanMultiSelect value={plans} onChange={setPlans} /></div>
+        <div className="space-y-1 sm:col-span-2 lg:col-span-4"><Label>Pastaba / Kam skirtas kodas</Label><Input value={f.note} maxLength={300} onChange={e => set("note")(e.target.value)} placeholder="Skirta architektui Jonui už bendradarbiavimą" /><p className="text-xs text-muted-foreground">Matoma tik administracijoje, klientams nerodoma.</p></div>
       </div>
-      <p className="text-xs text-muted-foreground">Galutinis kodas: <span className="font-mono">{normalizeCode(f.prefix) + normalizeCode(f.code) || "—"}</span>. Tuščios datos ir limitas – neribota.</p>
+      <p className="text-xs text-muted-foreground">Kodas: <span className="font-mono">{normalizeCode(f.code) || "—"}</span>. Tuščios datos ir limitas – neribota.</p>
       <Button onClick={() => void create()} disabled={saving}>Sukurti kodą</Button>
       {rows === null ? <p className="text-sm text-muted-foreground">Įkeliama…</p> : table(current)}
       {archived.length > 0 && <div><Button variant="link" className="px-0" onClick={() => setShowArchive(v => !v)}>{showArchive ? "Slėpti archyvą" : `Archyvas (${archived.length})`}</Button>{showArchive && table(archived)}</div>}
