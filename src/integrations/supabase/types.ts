@@ -155,6 +155,8 @@ export type Database = {
           company_name: string | null
           contact_person: string | null
           created_at: string
+          discount_amount: number
+          discount_label: string | null
           email: string
           file_paths: string[]
           first_name: string
@@ -163,6 +165,7 @@ export type Database = {
           last_name: string
           montonio_uuid: string | null
           order_number: string
+          original_price: number | null
           paid_at: string | null
           payment_email_claimed_at: string | null
           payment_email_sent_at: string | null
@@ -173,6 +176,8 @@ export type Database = {
           plan_name: string
           price: number
           project_goal: string | null
+          promo_code: string | null
+          promo_code_id: string | null
           response_file_paths: string[]
           status: string
           vat_code: string | null
@@ -187,6 +192,8 @@ export type Database = {
           company_name?: string | null
           contact_person?: string | null
           created_at?: string
+          discount_amount?: number
+          discount_label?: string | null
           email: string
           file_paths?: string[]
           first_name?: string
@@ -195,6 +202,7 @@ export type Database = {
           last_name?: string
           montonio_uuid?: string | null
           order_number: string
+          original_price?: number | null
           paid_at?: string | null
           payment_email_claimed_at?: string | null
           payment_email_sent_at?: string | null
@@ -205,6 +213,8 @@ export type Database = {
           plan_name: string
           price: number
           project_goal?: string | null
+          promo_code?: string | null
+          promo_code_id?: string | null
           response_file_paths?: string[]
           status?: string
           vat_code?: string | null
@@ -219,6 +229,8 @@ export type Database = {
           company_name?: string | null
           contact_person?: string | null
           created_at?: string
+          discount_amount?: number
+          discount_label?: string | null
           email?: string
           file_paths?: string[]
           first_name?: string
@@ -227,6 +239,7 @@ export type Database = {
           last_name?: string
           montonio_uuid?: string | null
           order_number?: string
+          original_price?: number | null
           paid_at?: string | null
           payment_email_claimed_at?: string | null
           payment_email_sent_at?: string | null
@@ -237,6 +250,8 @@ export type Database = {
           plan_name?: string
           price?: number
           project_goal?: string | null
+          promo_code?: string | null
+          promo_code_id?: string | null
           response_file_paths?: string[]
           status?: string
           vat_code?: string | null
@@ -290,6 +305,48 @@ export type Database = {
           created_at?: string
           full_name?: string
           id?: string
+        }
+        Relationships: []
+      }
+      promo_codes: {
+        Row: {
+          code: string
+          created_at: string
+          discount_type: string
+          discount_value: number
+          id: string
+          is_active: boolean
+          max_uses: number | null
+          plan_key: string | null
+          prefix: string
+          valid_from: string | null
+          valid_to: string | null
+        }
+        Insert: {
+          code: string
+          created_at?: string
+          discount_type: string
+          discount_value: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          plan_key?: string | null
+          prefix?: string
+          valid_from?: string | null
+          valid_to?: string | null
+        }
+        Update: {
+          code?: string
+          created_at?: string
+          discount_type?: string
+          discount_value?: number
+          id?: string
+          is_active?: boolean
+          max_uses?: number | null
+          plan_key?: string | null
+          prefix?: string
+          valid_from?: string | null
+          valid_to?: string | null
         }
         Relationships: []
       }

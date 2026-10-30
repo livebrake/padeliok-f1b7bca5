@@ -13,7 +13,7 @@ import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { matchesOrderQuery } from "@/lib/order-search";
-import { WORK_STATUSES, canManageTeam, financeSummary, formatEur, FINANCE_PERIODS, inPeriod, type FinancePeriod, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
+import { WORK_STATUSES, canManageTeam, financeSummary, discountSummary, formatEur, FINANCE_PERIODS, inPeriod, type FinancePeriod, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
 import { TeamManagement } from '@/components/TeamManagement';
 import { OrderDetails } from '@/components/OrderDetails';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -22,6 +22,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { PromoCodes, DiscountStats } from "@/components/PromoCodes";
 import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
@@ -284,7 +285,7 @@ function Dashboard() {
 
       <div className="mx-auto max-w-7xl space-y-4 px-4 py-6">
         <Tabs value={manager ? view : 'orders'} onValueChange={setView}><TabsList><TabsTrigger value="orders">Užsakymai</TabsTrigger>{manager && <><TabsTrigger value="finance">Finansai</TabsTrigger><TabsTrigger value="team">Komanda</TabsTrigger><TabsTrigger value="settings">Nustatymai</TabsTrigger></>}</TabsList></Tabs>
-        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">Finansai</h2><Select value={period} onValueChange={v => setPeriod(v as FinancePeriod)}><SelectTrigger className="w-48" aria-label="Laikotarpis"><SelectValue /></SelectTrigger><SelectContent>{FINANCE_PERIODS.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent></Select></div>{(() => { const po = (orders ?? []).filter(o => inPeriod(o, period)); const f = financeSummary(po); return <><dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Bendros pajamos</dt><dd className="text-3xl font-bold">{formatEur(f.revenue)}</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{f.count}</dd></div><div><dt className="text-muted-foreground">Vidutinė užsakymo vertė</dt><dd className="text-3xl font-bold">{formatEur(f.average)}</dd></div></dl><PlanBreakdown orders={po} /></>; })()}<AccountingExport /></section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p><PlanPricesSettings /><InvoiceSettings /></section> : <>
+        {manager && view === 'team' ? <TeamManagement /> : manager && view === 'finance' ? <section className="py-6 space-y-4"><div className="flex flex-wrap items-center justify-between gap-3"><h2 className="text-xl font-bold">Finansai</h2><Select value={period} onValueChange={v => setPeriod(v as FinancePeriod)}><SelectTrigger className="w-48" aria-label="Laikotarpis"><SelectValue /></SelectTrigger><SelectContent>{FINANCE_PERIODS.map(p => <SelectItem key={p.id} value={p.id}>{p.label}</SelectItem>)}</SelectContent></Select></div>{(() => { const po = (orders ?? []).filter(o => inPeriod(o, period)); const f = financeSummary(po); return <><dl className="grid gap-6 sm:grid-cols-3"><div><dt className="text-muted-foreground">Bendros pajamos</dt><dd className="text-3xl font-bold">{formatEur(f.revenue)}</dd></div><div><dt className="text-muted-foreground">Apmokėtų užsakymų</dt><dd className="text-3xl font-bold">{f.count}</dd></div><div><dt className="text-muted-foreground">Vidutinė užsakymo vertė</dt><dd className="text-3xl font-bold">{formatEur(f.average)}</dd></div></dl><PlanBreakdown orders={po} /><DiscountStats summary={discountSummary(po)} /></>; })()}<PromoCodes orders={orders ?? []} /><AccountingExport /></section> : manager && view === 'settings' ? <section className="py-6 space-y-3"><h2 className="text-xl font-bold">Nustatymai</h2><p>Darbo būsenos: {WORK_STATUSES.join(' · ')}</p><p>Mokėjimai: Montonio · testinė aplinka</p><p>Komandos teises valdo vadovas.</p><PlanPricesSettings /><InvoiceSettings /></section> : <>
         <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
           <Tabs value={tab} onValueChange={setTab}>
             <TabsList className="flex-wrap h-auto">

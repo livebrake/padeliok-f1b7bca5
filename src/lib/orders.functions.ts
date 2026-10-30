@@ -2,6 +2,28 @@ import { createServerFn } from "@tanstack/react-start";
 import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 import { validateCheckout, normalizePhone, FILE_EXT } from "@/lib/order-validation";
+import { applyPromo, normalizeCode, type PromoResult } from "@/lib/promo";
+
+type AdminClient = (typeof import("@/integrations/supabase/client.server"))["supabaseAdmin"];
+async function resolvePromo(admin: AdminClient, rawCode: string, planKey: string, price: number) {
+  const code = normalizeCode(rawCode);
+  const { data: row } = await admin.from("promo_codes").select("*").eq("code", code).maybeSingle();
+  if (!row) return { row: null, result: { ok: false, message: "Nuolaidos kodas negalioja." } as PromoResult };
+  const { count } = await admin.from("orders").select("id", { count: "exact", head: true })
+    .eq("promo_code_id", row.id).eq("payment_status", "PAID");
+  return { row, result: applyPromo(row, planKey, price, count ?? 0) };
+}
+
+/** Public preview of a promo code; never reveals code details beyond the discount label. */
+export const checkPromo = createServerFn({ method: "POST" })
+  .inputValidator((d: { code: string; plan: string }) => z.object({ code: z.string().max(60), plan: z.string().max(50) }).parse(d))
+  .handler(async ({ data }): Promise<PromoResult> => {
+    if (!normalizeCode(data.code)) return { ok: false, message: "Įveskite nuolaidos kodą." };
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: pr } = await supabaseAdmin.from("plan_prices").select("price").eq("plan_key", data.plan.toLowerCase()).maybeSingle();
+    if (!pr) return { ok: false, message: "Nepasirinktas planas." };
+    return (await resolvePromo(supabaseAdmin, data.code, data.plan, Number(pr.price))).result;
+  });
 
 // Allowed plan keys only; actual prices live in the plan_prices table.
 const PRICES: Record<string, true> = { bazinis: true, standartinis: true, premium: true };
@@ -35,6 +57,7 @@ const payload = z.object({
   agreement: z.string().max(5).default("0"),
   filePaths: z.array(z.string().max(300)).max(5).default([]),
   paymentMethod: z.string().trim().min(1).max(40),
+  promoCode: z.string().max(60).default(""),
 });
 
 export type SubmitResult =
@@ -92,6 +115,14 @@ export const submitOrder = createServerFn({ method: "POST" })
       .from("plan_prices").select("name, price").eq("plan_key", v.plan.toLowerCase()).maybeSingle();
     const plan = priceRow ? { name: priceRow.name, price: Number(priceRow.price) } : null;
     if (!plan || !(plan.price > 0)) return invalid("Nepavyko nustatyti plano kainos. Bandykite dar kartą.");
+    // Discount is recomputed server-side; the order keeps a snapshot so later code edits never change history.
+    let promo: { id: string; code: string; label: string; discount: number; final: number } | null = null;
+    if (normalizeCode(v.promoCode)) {
+      const { row, result } = await resolvePromo(supabaseAdmin, v.promoCode, v.plan, plan.price);
+      if (!result.ok || !row) return invalid(result.ok ? "Nuolaidos kodas negalioja." : result.message);
+      promo = { id: row.id, code: row.code, label: result.label, discount: result.discount, final: result.final };
+    }
+    const charged = promo ? promo.final : plan.price;
     const { data: seq } = await supabaseAdmin.rpc("next_order_number");
     const orderNumber = seq ?? `PAD-${Date.now().toString().slice(-6)}`;
 
@@ -113,7 +144,12 @@ export const submitOrder = createServerFn({ method: "POST" })
       email: v.email,
       phone,
       plan_name: plan.name,
-      price: plan.price,
+      price: charged,
+      original_price: plan.price,
+      discount_amount: promo?.discount ?? 0,
+      promo_code: promo?.code ?? null,
+      promo_code_id: promo?.id ?? null,
+      discount_label: promo?.label ?? null,
       status: "Naujas",
       payment_status: "PENDING",
       payment_method: v.paymentMethod,
@@ -137,7 +173,7 @@ export const submitOrder = createServerFn({ method: "POST" })
     try {
       const { createPayment } = await import("@/lib/montonio.server");
       const pay = await createPayment({
-        orderNumber, price: plan.price, planName: plan.name, method: v.paymentMethod,
+        orderNumber, price: charged, planName: plan.name, method: v.paymentMethod,
         firstName: firstName!, lastName: rest.join(" ") || firstName!, email: v.email, phone,
         origin: new URL(getRequest().url).origin,
       });
