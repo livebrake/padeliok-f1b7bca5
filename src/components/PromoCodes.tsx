@@ -8,14 +8,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { isExpired, normalizeCode } from "@/lib/promo";
+import { isExpired, normalizeCode, promoPlans } from "@/lib/promo";
 import { formatEur, paymentLabel, type TeamOrder } from "@/lib/team-rules";
+import { PlanMultiSelect, planName } from "@/components/PlanMultiSelect";
 
 type Promo = Tables<"promo_codes">;
-const PLAN_OPTS = [["all", "Visi planai"], ["bazinis", "Bazinis"], ["standartinis", "Standartinis"], ["premium", "Premium"]] as const;
-const empty = { prefix: "", code: "", type: "percent", value: "", from: "", to: "", max: "", plan: "all" };
+const empty = { prefix: "", code: "", type: "percent", value: "", from: "", to: "", max: "" };
 
 export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
+  const [plans, setPlans] = useState<string[]>([]);
   const [rows, setRows] = useState<Promo[] | null>(null);
   const [f, setF] = useState(empty);
   const [saving, setSaving] = useState(false);
