@@ -873,7 +873,7 @@ function Order({
             <span>{promo ? promo.final : plan.price} €</span>
           </span>
         </div>
-        <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 72–96 val.</p>
+        <p className="text-xs text-muted-foreground">Kaina su PVM</p>
         <div data-validation-field="paymentMethod" className="my-4 flex flex-col gap-2 border-y border-border py-6">
           <p className="text-sm font-semibold">
             Mokėjimo būdas <span className="text-destructive">*</span>
