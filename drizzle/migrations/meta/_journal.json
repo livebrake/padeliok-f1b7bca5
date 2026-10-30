@@ -120,6 +120,13 @@
       "when": 1793369426696,
       "tag": "0016_promo_plan_keys",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1793370378187,
+      "tag": "0017_promo_note",
+      "breakpoints": true
     }
   ]
 }
