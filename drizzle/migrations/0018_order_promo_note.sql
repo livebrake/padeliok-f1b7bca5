@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS promo_note text;
+UPDATE public.orders o SET promo_note = p.note FROM public.promo_codes p WHERE o.promo_code_id = p.id AND o.promo_note IS NULL AND p.note IS NOT NULL;

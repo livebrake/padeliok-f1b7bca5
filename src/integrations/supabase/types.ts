@@ -178,6 +178,7 @@ export type Database = {
           project_goal: string | null
           promo_code: string | null
           promo_code_id: string | null
+          promo_note: string | null
           response_file_paths: string[]
           status: string
           vat_code: string | null
@@ -215,6 +216,7 @@ export type Database = {
           project_goal?: string | null
           promo_code?: string | null
           promo_code_id?: string | null
+          promo_note?: string | null
           response_file_paths?: string[]
           status?: string
           vat_code?: string | null
@@ -252,6 +254,7 @@ export type Database = {
           project_goal?: string | null
           promo_code?: string | null
           promo_code_id?: string | null
+          promo_note?: string | null
           response_file_paths?: string[]
           status?: string
           vat_code?: string | null
