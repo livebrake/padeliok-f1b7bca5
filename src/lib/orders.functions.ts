@@ -116,11 +116,11 @@ export const submitOrder = createServerFn({ method: "POST" })
     const plan = priceRow ? { name: priceRow.name, price: Number(priceRow.price) } : null;
     if (!plan || !(plan.price > 0)) return invalid("Nepavyko nustatyti plano kainos. Bandykite dar kartą.");
     // Discount is recomputed server-side; the order keeps a snapshot so later code edits never change history.
-    let promo: { id: string; code: string; label: string; discount: number; final: number } | null = null;
+    let promo: { id: string; code: string; label: string; discount: number; final: number; note: string | null } | null = null;
     if (normalizeCode(v.promoCode)) {
       const { row, result } = await resolvePromo(supabaseAdmin, v.promoCode, v.plan, plan.price);
       if (!result.ok || !row) return invalid(result.ok ? "Nuolaidos kodas negalioja." : result.message);
-      promo = { id: row.id, code: row.code, label: result.label, discount: result.discount, final: result.final };
+      promo = { id: row.id, code: row.code, label: result.label, discount: result.discount, final: result.final, note: row.note?.trim() || null };
     }
     const charged = promo ? promo.final : plan.price;
     const { data: seq } = await supabaseAdmin.rpc("next_order_number");
@@ -150,6 +150,7 @@ export const submitOrder = createServerFn({ method: "POST" })
       promo_code: promo?.code ?? null,
       promo_code_id: promo?.id ?? null,
       discount_label: promo?.label ?? null,
+      promo_note: promo?.note ?? null,
       status: "Naujas",
       payment_status: "PENDING",
       payment_method: v.paymentMethod,

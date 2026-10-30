@@ -127,6 +127,20 @@
       "when": 1793370378187,
       "tag": "0017_promo_note",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1793371128077,
+      "tag": "0018_order_promo_note",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1793371152328,
+      "tag": "0019_redact_promo_note",
+      "breakpoints": true
     }
   ]
 }
