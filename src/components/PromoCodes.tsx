@@ -99,13 +99,15 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
 }
 
 export function DiscountStats({ summary }: { summary: { total: number; count: number; byPlan: { name: string; count: number; total: number }[]; byCode: { code: string; count: number; total: number }[] } }) {
+  const [notes, setNotes] = useState<Record<string, string>>({});
+  useEffect(() => { void supabase.from("promo_codes").select("code,note").then(({ data }) => setNotes(Object.fromEntries((data ?? []).filter(r => r.note).map(r => [r.code, r.note!])))); }, []);
   return (
     <section className="space-y-4 rounded-xl border bg-card p-5">
       <h3 className="font-bold">Nuolaidos</h3>
       <dl className="grid gap-6 sm:grid-cols-2"><div><dt className="text-muted-foreground">Suteikta nuolaidų</dt><dd className="text-2xl font-bold">{formatEur(summary.total)}</dd></div><div><dt className="text-muted-foreground">Panaudota kodų</dt><dd className="text-2xl font-bold">{summary.count}</dd></div></dl>
       <div className="grid gap-6 md:grid-cols-2">
         <table className="w-full text-sm"><thead className="text-left text-muted-foreground"><tr><th>Planas</th><th>Panaudojimai</th><th className="text-right">Nuolaida</th></tr></thead><tbody>{summary.byPlan.map(r => <tr key={r.name} className="border-t"><td className="py-1.5">{r.name}</td><td>{r.count}</td><td className="text-right">{formatEur(r.total)}</td></tr>)}</tbody></table>
-        <table className="w-full text-sm"><thead className="text-left text-muted-foreground"><tr><th>Kodas</th><th>Panaudojimai</th><th className="text-right">Nuolaida</th></tr></thead><tbody>{summary.byCode.length ? summary.byCode.map(r => <tr key={r.code} className="border-t"><td className="py-1.5 font-mono">{r.code}</td><td>{r.count}</td><td className="text-right">{formatEur(r.total)}</td></tr>) : <tr className="border-t"><td colSpan={3} className="py-1.5 text-muted-foreground">Kodų nepanaudota.</td></tr>}</tbody></table>
+        <table className="w-full text-sm"><thead className="text-left text-muted-foreground"><tr><th>Kodas</th><th>Panaudojimai</th><th className="text-right">Nuolaida</th></tr></thead><tbody>{summary.byCode.length ? summary.byCode.map(r => <tr key={r.code} className="border-t"><td className="py-1.5"><div className="font-mono">{r.code}</div>{notes[r.code] && <div className="text-xs text-muted-foreground">{notes[r.code]}</div>}</td><td>{r.count}</td><td className="text-right">{formatEur(r.total)}</td></tr>) : <tr className="border-t"><td colSpan={3} className="py-1.5 text-muted-foreground">Kodų nepanaudota.</td></tr>}</tbody></table>
       </div>
     </section>
   );
