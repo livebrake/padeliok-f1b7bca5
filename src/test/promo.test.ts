@@ -22,13 +22,13 @@ describe('promo codes', () => {
       { payment_status: 'PENDING', plan_name: 'Premium', promo_code: 'VIP-10', discount_amount: 19.9 },
       { payment_status: 'PAID', plan_name: 'Bazinis', promo_code: null, discount_amount: 0 },
     ]);
-    expect(s.total).toBe(19.9); expect(s.count).toBe(1); expect(s.byCode).toEqual([{ code: 'VIP-10', count: 1, total: 19.9 }]);
+    expect(s.total).toBe(19.9); expect(s.count).toBe(1); expect(s.byCode).toEqual([{ code: 'VIP-10', count: 1, total: 19.9, note: null }]);
   });
 });
 
 describe('promo note snapshot', () => {
   it('reports the note saved on the order even when the code no longer exists', () => {
     const s = discountSummary([{ payment_status: 'PAID', plan_name: 'Bazinis', promo_code: 'JONAS10', promo_note: 'Architektas Jonas', discount_amount: 5 }]);
-    expect(s.byCode[0].note).toBe('Architektas Jonas');
+    expect(s.byCode[0]?.note).toBe('Architektas Jonas');
   });
 });
