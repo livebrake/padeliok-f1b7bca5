@@ -32,7 +32,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { submitOrder } from "@/lib/orders.functions";
+import { submitOrder, checkPromo } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
 import { withRequestTimeout } from "@/lib/request-timeout";
 
@@ -425,6 +425,24 @@ function Order({
   const [agreement, setAgreement] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [method, setMethod] = useState("");
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; final: number; label: string } | null>(null);
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [promoBusy, setPromoBusy] = useState(false);
+  const applyCode = async () => {
+    setPromoBusy(true);
+    setPromoMsg(null);
+    try {
+      const r = await withRequestTimeout(checkPromo({ data: { code: promoInput, plan: plan.id } }));
+      if (r.ok) setPromo({ code: promoInput, final: r.final, label: r.label });
+      else { setPromo(null); setPromoMsg(r.message); }
+    } catch {
+      setPromo(null);
+      setPromoMsg("Nepavyko patikrinti kodo. Bandykite dar kartą.");
+    } finally {
+      setPromoBusy(false);
+    }
+  };
   const [methods, setMethods] = useState<{ code: string; name: string; logoUrl: string; kind: string }[] | null>(null);
   const [methodsError, setMethodsError] = useState<string | null>(null);
   useEffect(() => {
@@ -514,6 +532,7 @@ function Order({
           agreement: "1",
           filePaths: paths,
           paymentMethod: method,
+          promoCode: promo?.code ?? "",
         },
       });
       if (!res.ok) {
@@ -826,11 +845,6 @@ function Order({
           <span>Planas „{plan.name}“</span>
           <span>{plan.price} €</span>
         </div>
-        <div className="flex justify-between border-t border-border pt-4 font-display text-xl font-bold">
-          <span>Iš viso</span>
-          <span>{plan.price} €</span>
-        </div>
-        <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 72–96 val.</p>
         <div data-validation-field="paymentMethod" className="flex flex-col gap-2">
           <p className="text-sm font-semibold">
             Mokėjimo būdas <span className="text-destructive">*</span>
@@ -880,6 +894,33 @@ function Order({
             </p>
           )}
         </div>
+        <div className="flex flex-col gap-2">
+          <label htmlFor="order-promo" className="text-sm font-semibold">Nuolaidos kodas</label>
+          <div className="flex gap-2">
+            <Input
+              id="order-promo"
+              value={promoInput}
+              disabled={paying || promoBusy}
+              onChange={(e) => { setPromoInput(e.target.value); setPromo(null); setPromoMsg(null); }}
+              onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); if (promoInput.trim()) void applyCode(); } }}
+              placeholder="Įveskite kodą"
+              className="bg-card font-mono uppercase"
+            />
+            <Button type="button" variant="outline" disabled={paying || promoBusy || !promoInput.trim()} onClick={() => void applyCode()}>
+              {promoBusy ? "Tikrinama…" : "Tikrinti"}
+            </Button>
+          </div>
+          {promo && <p role="status" className="text-xs font-medium text-success">{promo.label}</p>}
+          {promoMsg && <p role="alert" className="text-xs text-destructive">{promoMsg}</p>}
+        </div>
+        <div className="flex items-baseline justify-between border-t border-border pt-4 font-display text-xl font-bold">
+          <span>Iš viso</span>
+          <span className="flex items-baseline gap-2">
+            {promo && <s className="text-base font-medium text-muted-foreground">{plan.price} €</s>}
+            <span>{promo ? promo.final : plan.price} €</span>
+          </span>
+        </div>
+        <p className="text-xs text-muted-foreground">Kaina su PVM. Atsakymas per 72–96 val.</p>
         <div data-validation-field="agreement" className="mt-auto flex items-start gap-2 text-sm">
           <Checkbox
             id="order-agreement"
