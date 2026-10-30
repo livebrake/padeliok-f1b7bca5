@@ -847,7 +847,6 @@ function Order({
           <span>Planas „{plan.name}“</span>
           <span>{plan.price} €</span>
         </div>
-        </div>
         <div className="flex flex-col gap-2">
           <label htmlFor="order-promo" className="text-sm font-semibold">Nuolaidos kodas</label>
           <div className="flex gap-2">
@@ -923,6 +922,7 @@ function Order({
               {errors["paymentMethod"]}
             </p>
           )}
+        </div>
         <div data-validation-field="agreement" className="mt-auto flex items-start gap-2 text-sm">
           <Checkbox
             id="order-agreement"
