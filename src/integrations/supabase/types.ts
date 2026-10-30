@@ -317,6 +317,7 @@ export type Database = {
           id: string
           is_active: boolean
           max_uses: number | null
+          note: string | null
           plan_key: string | null
           plan_keys: string[] | null
           prefix: string
@@ -331,6 +332,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_uses?: number | null
+          note?: string | null
           plan_key?: string | null
           plan_keys?: string[] | null
           prefix?: string
@@ -345,6 +347,7 @@ export type Database = {
           id?: string
           is_active?: boolean
           max_uses?: number | null
+          note?: string | null
           plan_key?: string | null
           plan_keys?: string[] | null
           prefix?: string
