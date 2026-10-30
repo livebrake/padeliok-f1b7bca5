@@ -35,6 +35,8 @@ import { toast } from "sonner";
 import { submitOrder, checkPromo } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
 import { withRequestTimeout } from "@/lib/request-timeout";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 
 const TITLE = "padeliOK.lt — sklypo galimybių analizė Kaune ir Kauno rajone";
 const DESC =
