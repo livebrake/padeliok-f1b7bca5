@@ -102,7 +102,7 @@ export function DiscountStats({ summary }: { summary: { total: number; count: nu
   const [q, setQ] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
   useEffect(() => { void supabase.from("promo_codes").select("code,note").then(({ data }) => setNotes(Object.fromEntries((data ?? []).filter(r => r.note).map(r => [r.code, r.note!])))); }, []);
-  const codes = summary.byCode.filter(r => matchesPromoFilter({ code: r.code, note: r.note || notes[r.code] }, q));
+  const codes = summary.byCode.filter(r => matchesPromoFilter({ code: r.code, note: r.note || notes[r.code] || null }, q));
   return (
     <section className="space-y-4 rounded-xl border bg-card p-5">
       <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold">Nuolaidos</h3><Input value={q} onChange={e => setQ(e.target.value)} placeholder="Filtruoti pagal kodą ar pastabą" className="w-64" aria-label="Filtruoti nuolaidų kodus" /></div>
