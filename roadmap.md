@@ -12,3 +12,4 @@
 - [ ] Verify delivery and acceptance of a real employee invitation — requires a real recipient to accept the email; invitation sending is implemented but not exercised against a real mailbox.
 - [x] Localize team validation and alerts; add supervisor-only active-member password recovery and shared invite/recovery password setup; 12 tests passed, supervisor/employee/inactive-member flows and invalid-link state checked in browser.
 - [ ] Verify successful recovery email delivery and password setup from a real link — requires a recipient mailbox; reserved test domains are rejected by the email service, so full completion remains unverified.
+- [ ] Add production-domain team email links to exact orders, preserve the selector through login, and verify legacy fallback and authenticated opening without changing checkout/payment logic.

@@ -7,7 +7,8 @@ import { useServerFn } from '@tanstack/react-start';
 import { ensureInvoice } from '@/lib/invoices.functions';
 import { downloadBlob, invoicePdfBlob } from '@/lib/invoice-client';
 import { createFileRoute, redirect, useNavigate } from "@tanstack/react-router";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { adminOrderSearch } from '@/lib/admin-order-link';
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { toast } from "sonner";
 import { ArrowDown, ArrowUp, ArrowUpDown, ChevronDown, FileText, FilterX, LogOut, Search } from "lucide-react";
@@ -69,7 +70,8 @@ function endOfDay(d: Date) {
 
 export const Route = createFileRoute("/misko-skydas/")({
   ssr: false,
-  beforeLoad: async () => {
+  validateSearch: adminOrderSearch,
+  beforeLoad: async ({ search: orderSearch }) => {
     // Invite/recovery links land here; hand them to the password page before auth checks.
     const { hash, search } = window.location;
     const hp = new URLSearchParams(hash.slice(1));
@@ -77,7 +79,10 @@ export const Route = createFileRoute("/misko-skydas/")({
       throw redirect({ href: `/misko-skydas/pakvietimas${search}${hash}`, replace: true });
     }
     const { data } = await supabase.auth.getUser();
-    if (!data.user) throw redirect({ to: "/", replace: true });
+    if (!data.user) {
+      if (orderSearch.order_id) throw redirect({ to: '/misko-skydas/jungtis', search: orderSearch, replace: true });
+      throw redirect({ to: "/", replace: true });
+    }
     const { data: role } = await supabase.rpc('team_access');
     if (!role) throw redirect({ to: "/", replace: true });
   },
@@ -98,6 +103,7 @@ export const Route = createFileRoute("/misko-skydas/")({
 function Dashboard() {
   const qc = useQueryClient();
   const navigate = useNavigate();
+  const { order_id } = Route.useSearch();
   const [q, setQ] = useState("");
   const [tab, setTab] = useState("visi");
   const [preset, setPreset] = useState<Preset>("viskas");
@@ -109,6 +115,10 @@ function Dashboard() {
   const [view, setView] = useState('orders');
   const [period, setPeriod] = useState<FinancePeriod>('month');
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  useEffect(() => {
+    setSelectedId(order_id ?? null);
+    if (order_id) setView('orders');
+  }, [order_id]);
   const { data: role } = useQuery({ queryKey: ['team-role'], queryFn: async () => { const { data, error } = await supabase.rpc('team_access'); if (error) throw error; return data; } });
   const manager = canManageTeam(role);
   const { data: members } = useQuery({ queryKey: ['team-members'], queryFn: async () => { const { data, error } = await supabase.from('team_members').select('*'); if (error) throw error; return data; } });
@@ -413,7 +423,10 @@ function Dashboard() {
           </Table>
         </div>
         </>}
-        {selectedOrder && <OrderDetails order={selectedOrder} onClose={() => setSelectedId(null)} openFile={openFile}
+        {selectedOrder && <OrderDetails order={selectedOrder} onClose={() => {
+          setSelectedId(null);
+          if (order_id) void navigate({ to: '/misko-skydas', search: {}, replace: true });
+        }} openFile={openFile}
           invoice={manager && selectedOrder.payment_status === 'PAID' ? { busy: invoiceBusy === selectedOrder.id, download: () => downloadInvoice(selectedOrder.id), preview: () => downloadInvoice(selectedOrder.id, true) } : undefined} />}
         {manager && invoicePreview && <InvoicePreview blob={invoicePreview.blob} number={invoicePreview.number} onClose={() => setInvoicePreview(null)} />}
       </div>

@@ -21,3 +21,4 @@
 - Server invoice rendering uses embedded font bytes instead of fetching protected preview assets; PDF timestamps come from the invoice snapshot so retry attachments remain stable.
 - Use bounded attachSessionBearer middleware instead of the generated unbounded getSession attacher so public route hydration cannot hang on auth storage locks; protected server handlers still require a verified bearer, and visitor-gate failures remain closed.
 - Promo code eligibility lives in browser-safe src/lib/promo.ts; submitOrder recomputes the discount server-side and snapshots code, label and amounts on the order so editing or deleting codes never changes history or finance reports.
+- Team email order links use the shared browser-safe admin-order-link helper; the admin and login routes carry only order_id and open details from authorized team_orders results, with a main-view fallback for missing IDs.

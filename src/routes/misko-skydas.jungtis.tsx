@@ -7,8 +7,10 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { withRequestTimeout } from '@/lib/request-timeout';
+import { adminOrderSearch } from '@/lib/admin-order-link';
 
 export const Route = createFileRoute("/misko-skydas/jungtis")({
+  validateSearch: adminOrderSearch,
   head: () => ({
     meta: [
       { title: "Padeliok · Komandos prisijungimas" },
@@ -31,6 +33,7 @@ function LoginFallback() {
 
 function Login({ warning }: { warning?: string } = {}) {
   const navigate = useNavigate();
+  const orderSearch = Route.useSearch();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [busy, setBusy] = useState(false);
@@ -55,7 +58,7 @@ function Login({ warning }: { warning?: string } = {}) {
       toast.error('Ši paskyra neturi prieigos prie komandos valdymo.');
       return;
     }
-    await navigate({ to: "/misko-skydas", replace: true });
+    await navigate({ to: "/misko-skydas", search: orderSearch, replace: true });
     } catch {
       setErrorMessage('Nepavyko prisijungti. Patikrinkite ryšį ir bandykite dar kartą.');
       toast.error('Nepavyko prisijungti. Patikrinkite ryšį ir bandykite dar kartą.');
