@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { applyPromo, type PromoRow } from '@/lib/promo';
-import { discountSummary } from '@/lib/team-rules';
+import { discountSummary, promoCodeStats, matchesPromoFilter } from '@/lib/team-rules';
 const base: PromoRow = { id: '1', code: 'VIP-10', discount_type: 'percent', discount_value: 10, valid_from: null, valid_to: null, max_uses: null, plan_key: null, is_active: true };
 const now = new Date('2026-10-30T12:00:00Z');
 describe('promo codes', () => {
@@ -18,11 +18,11 @@ describe('promo codes', () => {
   it('usage limit reached rejected', () => expect(applyPromo({ ...base, max_uses: 2 }, 'premium', 199, 2, now).ok).toBe(false));
   it('summary counts only paid orders with codes', () => {
     const s = discountSummary([
-      { payment_status: 'PAID', plan_name: 'Premium', promo_code: 'VIP-10', discount_amount: 19.9 },
+      { payment_status: 'PAID', plan_name: 'Premium', promo_code: 'VIP-10', discount_amount: 19.9, price: 179.1 },
       { payment_status: 'PENDING', plan_name: 'Premium', promo_code: 'VIP-10', discount_amount: 19.9 },
       { payment_status: 'PAID', plan_name: 'Bazinis', promo_code: null, discount_amount: 0 },
     ]);
-    expect(s.total).toBe(19.9); expect(s.count).toBe(1); expect(s.byCode).toEqual([{ code: 'VIP-10', count: 1, total: 19.9, note: null }]);
+    expect(s.total).toBe(19.9); expect(s.count).toBe(1); expect(s.byCode).toEqual([{ code: 'VIP-10', count: 1, total: 19.9, revenue: 179.1, note: null }]);
   });
 });
 
@@ -31,4 +31,12 @@ describe('promo note snapshot', () => {
     const s = discountSummary([{ payment_status: 'PAID', plan_name: 'Bazinis', promo_code: 'JONAS10', promo_note: 'Architektas Jonas', discount_amount: 5 }]);
     expect(s.byCode[0]?.note).toBe('Architektas Jonas');
   });
+});
+
+describe('promo stats & filter', () => {
+  it('stats count only paid orders of that code', () => {
+    const o = [{ payment_status: 'PAID', price: 90, discount_amount: 9, promo_code_id: 'a' }, { payment_status: 'PAID', price: 45, discount_amount: 4, promo_code_id: 'a' }, { payment_status: 'PENDING', price: 90, discount_amount: 9, promo_code_id: 'a' }, { payment_status: 'PAID', price: 99, discount_amount: 0, promo_code_id: 'b' }];
+    expect(promoCodeStats(o, 'a')).toEqual({ count: 2, revenue: 135, discount: 13 });
+  });
+  it('filter matches note', () => { expect(matchesPromoFilter({ code: 'JONAS10', note: 'Architektas Jonas' }, 'architekt')).toBe(true); expect(matchesPromoFilter({ code: 'X', note: null }, 'jonas')).toBe(false); });
 });

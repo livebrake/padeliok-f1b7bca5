@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isExpired, normalizeCode, promoPlans } from "@/lib/promo";
-import { formatEur, paymentLabel, type TeamOrder } from "@/lib/team-rules";
+import { formatEur, paymentLabel, promoCodeStats, matchesPromoFilter, type TeamOrder } from "@/lib/team-rules";
 import { PlanMultiSelect, planName } from "@/components/PlanMultiSelect";
 
 type Promo = Tables<"promo_codes">;
@@ -64,14 +64,14 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
   const fmtDate = (d: string | null) => d ? new Date(d).toLocaleDateString("lt-LT") : "—";
   const table = (items: Promo[]) => items.length === 0 ? <p className="text-sm text-muted-foreground">Kodų nėra.</p> : (
     <div className="overflow-x-auto"><table className="w-full text-sm">
-      <thead className="text-left text-muted-foreground"><tr><th className="py-2">Kodas</th><th>Nuolaida</th><th>Planas</th><th>Galioja</th><th>Panaudota</th><th>Aktyvus</th><th /></tr></thead>
+      <thead className="text-left text-muted-foreground"><tr><th className="py-2">Kodas</th><th>Nuolaida</th><th>Planas</th><th>Galioja</th><th>Panaudota</th><th>Pajamos</th><th>Nuolaidų suma</th><th>Aktyvus</th><th /></tr></thead>
       <tbody>{items.map(p => (
         <tr key={p.id} className="border-t">
           <td className="py-2"><div className="font-mono">{p.code}</div>{p.note && <div className="text-xs text-muted-foreground">{p.note}</div>}</td>
           <td>{p.discount_type === "percent" ? `${Number(p.discount_value)}%` : formatEur(Number(p.discount_value))}</td>
           <td>{promoPlans(p).length ? promoPlans(p).map(planName).join(", ") : "Visi planai"}</td>
           <td>{fmtDate(p.valid_from)} – {fmtDate(p.valid_to)}</td>
-          <td>{used(p.id)}{p.max_uses ? ` / ${p.max_uses}` : " / ∞"}</td>
+          <td>{used(p.id)}{p.max_uses ? ` / ${p.max_uses}` : " / ∞"}</td>{(() => { const st = promoCodeStats(orders as never, p.id); return <><td>{formatEur(st.revenue)}</td><td>{formatEur(st.discount)}</td></>; })()}
           <td><Switch checked={p.is_active} onCheckedChange={v => void toggle(p, v)} aria-label={`Aktyvus ${p.code}`} /></td>
           <td className="text-right"><Button size="icon" variant="ghost" onClick={() => void remove(p)} aria-label={`Ištrinti ${p.code}`}><Trash2 className="h-4 w-4" /></Button></td>
         </tr>))}</tbody>
@@ -98,16 +98,18 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
   );
 }
 
-export function DiscountStats({ summary }: { summary: { total: number; count: number; byPlan: { name: string; count: number; total: number }[]; byCode: { code: string; count: number; total: number; note?: string | null }[] } }) {
+export function DiscountStats({ summary }: { summary: { total: number; count: number; byPlan: { name: string; count: number; total: number }[]; byCode: { code: string; count: number; total: number; revenue: number; note?: string | null }[] } }) {
+  const [q, setQ] = useState("");
   const [notes, setNotes] = useState<Record<string, string>>({});
   useEffect(() => { void supabase.from("promo_codes").select("code,note").then(({ data }) => setNotes(Object.fromEntries((data ?? []).filter(r => r.note).map(r => [r.code, r.note!])))); }, []);
+  const codes = summary.byCode.filter(r => matchesPromoFilter({ code: r.code, note: r.note || notes[r.code] }, q));
   return (
     <section className="space-y-4 rounded-xl border bg-card p-5">
-      <h3 className="font-bold">Nuolaidos</h3>
+      <div className="flex flex-wrap items-center justify-between gap-3"><h3 className="font-bold">Nuolaidos</h3><Input value={q} onChange={e => setQ(e.target.value)} placeholder="Filtruoti pagal kodą ar pastabą" className="w-64" aria-label="Filtruoti nuolaidų kodus" /></div>
       <dl className="grid gap-6 sm:grid-cols-2"><div><dt className="text-muted-foreground">Suteikta nuolaidų</dt><dd className="text-2xl font-bold">{formatEur(summary.total)}</dd></div><div><dt className="text-muted-foreground">Panaudota kodų</dt><dd className="text-2xl font-bold">{summary.count}</dd></div></dl>
       <div className="grid gap-6 md:grid-cols-2">
         <table className="w-full text-sm"><thead className="text-left text-muted-foreground"><tr><th>Planas</th><th>Panaudojimai</th><th className="text-right">Nuolaida</th></tr></thead><tbody>{summary.byPlan.map(r => <tr key={r.name} className="border-t"><td className="py-1.5">{r.name}</td><td>{r.count}</td><td className="text-right">{formatEur(r.total)}</td></tr>)}</tbody></table>
-        <table className="w-full text-sm"><thead className="text-left text-muted-foreground"><tr><th>Kodas</th><th>Panaudojimai</th><th className="text-right">Nuolaida</th></tr></thead><tbody>{summary.byCode.length ? summary.byCode.map(r => <tr key={r.code} className="border-t"><td className="py-1.5"><div className="font-mono">{r.code}</div>{notes[r.code] && <div className="text-xs text-muted-foreground">{notes[r.code]}</div>}</td><td>{r.count}</td><td className="text-right">{formatEur(r.total)}</td></tr>) : <tr className="border-t"><td colSpan={3} className="py-1.5 text-muted-foreground">Kodų nepanaudota.</td></tr>}</tbody></table>
+        <table className="w-full text-sm"><thead className="text-left text-muted-foreground"><tr><th>Kodas</th><th>Panaudojimai</th><th className="text-right">Pajamos</th><th className="text-right">Nuolaida</th></tr></thead><tbody>{codes.length ? codes.map(r => <tr key={r.code} className="border-t"><td className="py-1.5"><div className="font-mono">{r.code}</div>{(r.note || notes[r.code]) && <div className="text-xs text-muted-foreground">{r.note || notes[r.code]}</div>}</td><td>{r.count}</td><td className="text-right">{formatEur(r.revenue)}</td><td className="text-right">{formatEur(r.total)}</td></tr>) : <tr className="border-t"><td colSpan={4} className="py-1.5 text-muted-foreground">Kodų nepanaudota.</td></tr>}</tbody></table>
       </div>
     </section>
   );
