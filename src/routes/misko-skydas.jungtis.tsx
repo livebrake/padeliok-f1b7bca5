@@ -16,7 +16,7 @@ export const Route = createFileRoute("/misko-skydas/jungtis")({
     ],
   }),
   component: Login,
-  pendingComponent: Login,
+  pendingComponent: () => <Login />,
   errorComponent: LoginFallback,
 });
 
