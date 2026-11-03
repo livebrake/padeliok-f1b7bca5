@@ -15,6 +15,8 @@ type OrderEmailData = {
   invoice: Invoice;
 };
 
+import { siteUrl } from "./site-url";
+
 const TEAM_EMAIL = "info@padeliok.lt";
 const esc = (s: string) =>
   s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c] ?? c);
@@ -45,7 +47,7 @@ function teamHtml(d: OrderEmailData) {
     row("Aprašymas", esc(d.comment).replace(/\n/g, "<br>")),
     row(
       "Dokumentai",
-      d.fileLinks.length ? '<a href="https://padeliok.lovable.app/misko-skydas">Atidaryti užsakymo dokumentus</a>' : "—",
+      d.fileLinks.length ? `<a href="${siteUrl(process.env["PUBLIC_SITE_URL"])}/misko-skydas">Atidaryti užsakymo dokumentus</a>` : "—",
     ),
   ].join("");
   return wrap(
