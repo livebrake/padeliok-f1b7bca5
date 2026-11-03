@@ -2,7 +2,7 @@ import { siteUrl } from '@/lib/site-url';
 
 /** Only the order selector is carried through login, never an arbitrary redirect URL. */
 export function adminOrderSearch(search: Record<string, unknown>): { order_id?: string } {
-  const id = typeof search.order_id === 'string' ? search.order_id.trim() : '';
+  const id = typeof search['order_id'] === 'string' ? search['order_id'].trim() : '';
   return id && id.length <= 128 ? { order_id: id } : {};
 }
 
