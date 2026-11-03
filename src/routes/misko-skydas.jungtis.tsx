@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { adminOrderSearch } from "@/lib/admin-order-link";
-import { Login, LoginFallback } from "@/components/TeamLogin";
+import * as TeamLogin from "@/components/TeamLogin";
 
 export const Route = createFileRoute("/misko-skydas/jungtis")({
   validateSearch: adminOrderSearch,
@@ -15,8 +15,8 @@ export const Route = createFileRoute("/misko-skydas/jungtis")({
       { name: "twitter:card", content: "summary" },
     ],
   }),
-  component: Login,
-  pendingComponent: () => <Login />,
-  errorComponent: LoginFallback,
+  component: () => <TeamLogin.Login />,
+  pendingComponent: () => <TeamLogin.Login />,
+  errorComponent: () => <TeamLogin.LoginFallback />,
 });
 
