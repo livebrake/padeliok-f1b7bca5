@@ -34,4 +34,23 @@ describe('confirmation email PDF delivery', () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('test rejection', { status: 403 })));
     await expect(sendOrderEmails(data)).rejects.toThrow('(403)');
   });
+  it('sends a team document link containing the invoice order ID', async () => {
+    vi.stubEnv('RESEND_API_KEY', 'test-only');
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await sendOrderEmails({ ...data, fileLinks: [{ name: 'document.pdf', url: 'private-path' }] });
+    const team = JSON.parse(fetchMock.mock.calls[1]?.[1].body);
+    expect(team.to).toEqual(['info@padeliok.lt']);
+    const documentLink = /href="([^"]+)">Atidaryti užsakymo dokumentus/.exec(team.html)?.[1];
+    expect(documentLink).toBe('https://padeliok.lt/misko-skydas?order_id=order-1');
+  });
+  it('sends the main admin link when a legacy invoice has no order ID', async () => {
+    vi.stubEnv('RESEND_API_KEY', 'test-only');
+    const fetchMock = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetchMock);
+    await sendOrderEmails({ ...data, invoice: { ...invoice, order_id: '' }, fileLinks: [{ name: 'document.pdf', url: 'private-path' }] });
+    const team = JSON.parse(fetchMock.mock.calls[1]?.[1].body);
+    const documentLink = /href="([^"]+)">Atidaryti užsakymo dokumentus/.exec(team.html)?.[1];
+    expect(documentLink).toBe('https://padeliok.lt/misko-skydas');
+  });
 });

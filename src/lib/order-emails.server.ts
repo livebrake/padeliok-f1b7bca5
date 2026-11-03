@@ -15,7 +15,7 @@ type OrderEmailData = {
   invoice: Invoice;
 };
 
-import { siteUrl } from "./site-url";
+import { adminOrderUrl } from './admin-order-link';
 
 const TEAM_EMAIL = "info@padeliok.lt";
 const esc = (s: string) =>
@@ -47,7 +47,7 @@ function teamHtml(d: OrderEmailData) {
     row("Aprašymas", esc(d.comment).replace(/\n/g, "<br>")),
     row(
       "Dokumentai",
-      d.fileLinks.length ? `<a href="${siteUrl(process.env["PUBLIC_SITE_URL"])}/misko-skydas">Atidaryti užsakymo dokumentus</a>` : "—",
+      d.fileLinks.length ? `<a href="${esc(adminOrderUrl(d.invoice?.order_id, process.env["PUBLIC_SITE_URL"]))}">Atidaryti užsakymo dokumentus</a>` : "—",
     ),
   ].join("");
   return wrap(
