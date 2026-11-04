@@ -3,7 +3,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
 import { Eye, FileText, MessageSquare, Upload } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-import { shortName, type TeamOrder } from '@/lib/team-rules';
+import { formatEur, paymentLabel, shortName, type TeamOrder } from '@/lib/team-rules';
 import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { Button } from '@/components/ui/button';
@@ -14,6 +14,7 @@ import { FILE_EXT, MAX_FILE_SIZE } from '@/lib/order-validation';
 export function OrderDetails({ order, onClose, openFile, invoice }: { order: TeamOrder; onClose: () => void; openFile: (path: string) => void; invoice?: { busy: boolean; download: () => void; preview: () => void } | undefined }) {
   const qc = useQueryClient(); const [note, setNote] = useState(''); const [uploading, setUploading] = useState(false);
   const { data: logs, isLoading, error } = useQuery({ queryKey: ['order-audit', order.id], queryFn: async () => { const { data, error } = await supabase.from('order_audit_logs').select('*').eq('order_id', order.id).order('created_at', { ascending: false }); if (error) throw error; return data; } });
+  const { data: refunds, error: refundError } = useQuery({ queryKey: ['order-refunds', order.id], enabled: order.price !== undefined, queryFn: async () => { const { data, error } = await supabase.from('order_refunds').select('*').eq('order_id', order.id).order('provider_created_at', { ascending: false }); if (error) throw error; return data; } });
   const save = useMutation({ mutationFn: async () => { const { error } = await supabase.rpc('change_team_order', { order_uuid: order.id, note_text: note.trim() }); if (error) throw error; }, onSuccess: () => { setNote(''); qc.invalidateQueries({ queryKey: ['order-audit', order.id] }); toast.success('Pastaba išsaugota.'); }, onError: (e) => toast.error(e.message) });
   async function upload(file?: File) {
     if (!file) return;
@@ -25,6 +26,8 @@ export function OrderDetails({ order, onClose, openFile, invoice }: { order: Tea
   }
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)]">
     <DialogTitle>Užsakymas #{order.order_number}</DialogTitle><DialogDescription>{order.company_name || order.full_name} · {order.plan_name}</DialogDescription>
+    <p className="text-sm font-medium">{paymentLabel(order.payment_status)}</p>
+    {order.price !== undefined && ((refunds?.length ?? 0) > 0 || refundError) && <section className="border-t pt-4"><h3 className="mb-2 font-semibold">Grąžinimų istorija</h3>{refundError ? <p className="text-sm text-destructive">Nepavyko įkelti grąžinimų.</p> : <Table><TableHeader><TableRow><TableHead>Data</TableHead><TableHead>Suma</TableHead><TableHead>Būsena</TableHead></TableRow></TableHeader><TableBody>{refunds?.map(r => <TableRow key={r.id}><TableCell>{new Date(r.provider_created_at).toLocaleString('lt-LT', { timeZone: 'Europe/Vilnius' })}</TableCell><TableCell className="font-mono">{formatEur(r.amount_cents / 100)}</TableCell><TableCell>{({ SUCCESSFUL: 'Grąžinta', REJECTED: 'Atmesta', PENDING: 'Laukia', PROCESSING: 'Vykdoma', CANCELED: 'Atšaukta' } as Record<string, string>)[r.status] ?? r.status}{r.status_description && <div className="text-xs text-muted-foreground">{r.status_description}</div>}</TableCell></TableRow>)}</TableBody></Table>}</section>}
     {invoice && <div className="flex flex-wrap gap-2"><Button size="sm" variant="outline" disabled={invoice.busy} onClick={invoice.preview}><Eye className="h-4 w-4 mr-1" />{invoice.busy ? 'Ruošiama…' : 'Peržiūrėti sąskaitą'}</Button><Button size="sm" variant="outline" disabled={invoice.busy} onClick={invoice.download}><FileText className="h-4 w-4 mr-1" />Atsisiųsti SF (PDF)</Button></div>}
     <dl className="grid gap-3 sm:grid-cols-2 text-sm">
       <div><dt className="text-muted-foreground">{(order.client_type === 'company' || order.client_type === 'juridinis') ? 'Įmonės pavadinimas' : 'Užsakovas'}</dt><dd>{order.company_name || order.full_name || '—'}</dd></div>

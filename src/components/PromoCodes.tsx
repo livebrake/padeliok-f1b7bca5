@@ -9,7 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Switch } from "@/components/ui/switch";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { isExpired, normalizeCode, promoPlans } from "@/lib/promo";
-import { formatEur, paymentLabel, promoCodeStats, matchesPromoFilter, type TeamOrder } from "@/lib/team-rules";
+import { formatEur, wasCaptured, promoCodeStats, matchesPromoFilter, type TeamOrder } from "@/lib/team-rules";
 import { PlanMultiSelect, planName } from "@/components/PlanMultiSelect";
 
 type Promo = Tables<"promo_codes">;
@@ -25,7 +25,7 @@ export function PromoCodes({ orders }: { orders: TeamOrder[] }) {
     .then(({ data, error }) => error ? toast.error("Nepavyko įkelti nuolaidų kodų.") : setRows(data ?? []));
   useEffect(() => { void load(); }, []);
 
-  const used = (id: string) => orders.filter(o => (o as { promo_code_id?: string | null }).promo_code_id === id && paymentLabel(o.payment_status) === "Apmokėta").length;
+  const used = (id: string) => orders.filter(o => o.promo_code_id === id && wasCaptured(o)).length;
   const set = (k: keyof typeof empty) => (v: string) => setF(p => ({ ...p, [k]: v }));
 
   const create = async () => {

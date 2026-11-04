@@ -23,3 +23,5 @@
 - Promo code eligibility lives in browser-safe src/lib/promo.ts; submitOrder recomputes the discount server-side and snapshots code, label and amounts on the order so editing or deleting codes never changes history or finance reports.
 - Team email order links use the shared browser-safe admin-order-link helper; the admin and login routes carry only order_id and open details from authorized team_orders results, with a main-view fallback for missing IDs.
 - Keep the team login form in a shared component and wrap its pending renderer inline so route code splitting cannot strip a component also referenced by a non-split option.
+- Verify Montonio order/refund JWTs and reconcile refund rows through documented GET order details; serialize service-only event recording on the order row, retain immutable event identities and successful refund totals, and derive finance in integer cents without altering original invoices or promo snapshots.
+- Use one explicit Montonio environment selector for checkout and reconciliation, retaining sandbox by default; refund period totals use observed successful-refund dates because the documented API lacks settlement timestamps.

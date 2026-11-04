@@ -144,9 +144,57 @@ export type Database = {
           },
         ]
       }
+      order_refunds: {
+        Row: {
+          amount_cents: number
+          event_at: string
+          id: string
+          montonio_refund_uuid: string
+          order_id: string
+          provider_created_at: string
+          received_at: string
+          status: string
+          status_description: string | null
+          updated_at: string
+        }
+        Insert: {
+          amount_cents: number
+          event_at: string
+          id?: string
+          montonio_refund_uuid: string
+          order_id: string
+          provider_created_at: string
+          received_at?: string
+          status: string
+          status_description?: string | null
+          updated_at?: string
+        }
+        Update: {
+          amount_cents?: number
+          event_at?: string
+          id?: string
+          montonio_refund_uuid?: string
+          order_id?: string
+          provider_created_at?: string
+          received_at?: string
+          status?: string
+          status_description?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_refunds_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           assigned_member_id: string | null
+          captured_amount_cents: number | null
           client_name: string | null
           client_type: string
           comment: string | null
@@ -169,6 +217,7 @@ export type Database = {
           paid_at: string | null
           payment_email_claimed_at: string | null
           payment_email_sent_at: string | null
+          payment_event_at: string | null
           payment_method: string | null
           payment_status: string
           phone: string
@@ -179,12 +228,15 @@ export type Database = {
           promo_code: string | null
           promo_code_id: string | null
           promo_note: string | null
+          refunded_amount_cents: number
+          refunded_at: string | null
           response_file_paths: string[]
           status: string
           vat_code: string | null
         }
         Insert: {
           assigned_member_id?: string | null
+          captured_amount_cents?: number | null
           client_name?: string | null
           client_type?: string
           comment?: string | null
@@ -207,6 +259,7 @@ export type Database = {
           paid_at?: string | null
           payment_email_claimed_at?: string | null
           payment_email_sent_at?: string | null
+          payment_event_at?: string | null
           payment_method?: string | null
           payment_status?: string
           phone: string
@@ -217,12 +270,15 @@ export type Database = {
           promo_code?: string | null
           promo_code_id?: string | null
           promo_note?: string | null
+          refunded_amount_cents?: number
+          refunded_at?: string | null
           response_file_paths?: string[]
           status?: string
           vat_code?: string | null
         }
         Update: {
           assigned_member_id?: string | null
+          captured_amount_cents?: number | null
           client_name?: string | null
           client_type?: string
           comment?: string | null
@@ -245,6 +301,7 @@ export type Database = {
           paid_at?: string | null
           payment_email_claimed_at?: string | null
           payment_email_sent_at?: string | null
+          payment_event_at?: string | null
           payment_method?: string | null
           payment_status?: string
           phone?: string
@@ -255,6 +312,8 @@ export type Database = {
           promo_code?: string | null
           promo_code_id?: string | null
           promo_note?: string | null
+          refunded_amount_cents?: number
+          refunded_at?: string | null
           response_file_paths?: string[]
           status?: string
           vat_code?: string | null
@@ -265,6 +324,47 @@ export type Database = {
             columns: ["assigned_member_id"]
             isOneToOne: false
             referencedRelation: "team_members"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      payment_events: {
+        Row: {
+          amount_cents: number
+          event_at: string
+          event_key: string
+          id: string
+          order_id: string
+          payment_status: string
+          received_at: string
+          refund_snapshot: Json
+        }
+        Insert: {
+          amount_cents: number
+          event_at: string
+          event_key: string
+          id?: string
+          order_id: string
+          payment_status: string
+          received_at?: string
+          refund_snapshot?: Json
+        }
+        Update: {
+          amount_cents?: number
+          event_at?: string
+          event_key?: string
+          id?: string
+          order_id?: string
+          payment_status?: string
+          received_at?: string
+          refund_snapshot?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "payment_events_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
             referencedColumns: ["id"]
           },
         ]
@@ -475,6 +575,18 @@ export type Database = {
         Returns: undefined
       }
       next_order_number: { Args: never; Returns: string }
+      record_montonio_event: {
+        Args: {
+          event_key: string
+          new_status: string
+          occurred_at: string
+          order_reference: string
+          provider_uuid: string
+          refund_rows?: Json
+          total_cents: number
+        }
+        Returns: Json
+      }
       team_access: { Args: never; Returns: string }
       team_order_exists: { Args: { order_text: string }; Returns: boolean }
       team_orders: { Args: never; Returns: Json }

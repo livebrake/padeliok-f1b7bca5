@@ -10,7 +10,7 @@ import { financeSummary as fs2, formatEur as fe2 } from '@/lib/team-rules';
 describe('finance', () => {
   it('sums only paid orders numerically', () => {
     const r = fs2([{ payment_status: 'PAID', price: '49' as unknown as number }, { payment_status: 'PAID', price: 199 }, { payment_status: 'PENDING', price: 99 }]);
-    expect(r).toEqual({ revenue: 248, count: 2, average: 124 });
+    expect(r).toEqual({ gross: 248, refunds: 0, revenue: 248, count: 2, average: 124 });
   });
   it('formats euros', () => expect(fe2(248)).toBe('248,00 €'));
 });
