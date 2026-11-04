@@ -81,7 +81,9 @@ function ErrorComponent({ error, reset }: ErrorComponentProps) {
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
   beforeLoad: async ({ location }) => {
     const path = location.pathname;
-    if (path === "/greitai" || path.startsWith("/misko-skydas") || path.startsWith("/order-")) return;
+    // API routes (Montonio webhook and other external callbacks) must never be
+    // redirected behind the password gate.
+    if (path === "/greitai" || path.startsWith("/api/") || path.startsWith("/misko-skydas") || path.startsWith("/order-")) return;
     // Fail closed: if the gate check cannot run, show the locked page instead of crashing.
     const unlocked = await withRequestTimeout(getGateStatus()).then((r) => r.unlocked, () => false);
     if (!unlocked) throw redirect({ to: "/greitai" });
