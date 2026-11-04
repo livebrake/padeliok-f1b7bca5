@@ -38,4 +38,17 @@ describe('verified Montonio post-payment flow', () => {
     await expect(processOrderToken(await token(99), 'http://localhost:8080')).rejects.toThrow('suma nesutampa');
     expect(mocks.fulfill).not.toHaveBeenCalled();
   });
+  it('logs the exact database failure without logging the signed token or fulfilling the order', async () => {
+    const log = vi.spyOn(console, 'error').mockImplementation(() => {});
+    const signedToken = await token();
+    mocks.rpc.mockResolvedValue({ data: null, error: { code: '42883', message: 'operator does not exist: text * integer', details: 'price arithmetic', hint: 'Use explicit type casts' } });
+    try {
+      await expect(processOrderToken(signedToken, 'http://localhost:8080')).rejects.toMatchObject({ status: 503 });
+      expect(log).toHaveBeenCalledWith('montonio.payment_reconciliation_failed', {
+        orderId: 'order-id', code: '42883', message: 'operator does not exist: text * integer', details: 'price arithmetic', hint: 'Use explicit type casts',
+      });
+      expect(JSON.stringify(log.mock.calls)).not.toContain(signedToken);
+      expect(mocks.fulfill).not.toHaveBeenCalled();
+    } finally { log.mockRestore(); }
+  });
 });

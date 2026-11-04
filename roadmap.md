@@ -14,6 +14,8 @@
 - [ ] Verify successful recovery email delivery and password setup from a real link — requires a recipient mailbox; reserved test domains are rejected by the email service, so full completion remains unverified.
 - [x] Add production-domain team email links to exact orders, preserve the selector through login, and test legacy fallback; 49 related tests passed without changes to checkout/payment logic.
 - [ ] Verify exact-order opening with a real authenticated team session — requesting user's account could not be minted; requires signing into the preview.
+- [x] Synchronize price-type payment/invoice compatibility and safe reconciliation diagnostics; 34 focused tests and isolated text-price/refund regressions pass.
+- [ ] Apply compatibility migration to the separate production database and verify a fresh Montonio payment/email delivery — requires the production deployment/database owner; no real payment initiated.
 - [x] Implement verified Montonio refund history, atomic limits, lifecycle states and gross/refund/net reports without changing checkout or snapshots.
 - [x] Verify refund regression tests, isolated database concurrency/security and public webhook rejection; document provider-delivery limitations.
 - [ ] Verify actual Montonio sandbox refund delivery and authenticated report rendering — requires a provider refund and an authorized team session; no real refund initiated.

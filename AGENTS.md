@@ -25,3 +25,4 @@
 - Keep the team login form in a shared component and wrap its pending renderer inline so route code splitting cannot strip a component also referenced by a non-split option.
 - Verify Montonio order/refund JWTs and reconcile refund rows through documented GET order details; serialize service-only event recording on the order row, retain immutable event identities and successful refund totals, and derive finance in integer cents without altering original invoices or promo snapshots.
 - Use one explicit Montonio environment selector for checkout and reconciliation, retaining sandbox by default; refund period totals use observed successful-refund dates because the documented API lacks settlement timestamps.
+- Cast stored order prices to numeric inside payment and invoice RPCs to support legacy text prices; retain service-only execution and log database error fields without tokens for safe diagnosis.

@@ -106,7 +106,13 @@ export async function processOrderToken(token: string, origin: string): Promise<
     total_cents: moneyCents(p.grandTotal), occurred_at: eventAt,
     event_key: await eventFingerprint(token), refund_rows: refunds,
   });
-  if (recordError) throw new MontonioEventError('Payment reconciliation failed');
+   if (recordError) {
+     console.error('montonio.payment_reconciliation_failed', {
+       orderId: order.id, code: recordError.code, message: recordError.message,
+       details: recordError.details, hint: recordError.hint,
+     });
+     throw new MontonioEventError('Payment reconciliation failed');
+   }
   const effective = z.object({ payment_status: z.string() }).parse(result).payment_status;
   if (status !== 'PAID' || effective !== 'PAID') return { orderNumber, status: effective };
   try {
@@ -144,6 +150,12 @@ export async function processRefundToken(token: string) {
     new_status: snapshot.paymentStatus, total_cents: moneyCents(snapshot.grandTotal),
     occurred_at: eventAt, event_key: await eventFingerprint(token), refund_rows: rows,
   });
-  if (error) throw new MontonioEventError('Refund reconciliation failed');
+   if (error) {
+     console.error('montonio.refund_reconciliation_failed', {
+       refundId: p.refundUuid, code: error.code, message: error.message,
+       details: error.details, hint: error.hint,
+     });
+     throw new MontonioEventError('Refund reconciliation failed');
+   }
   console.info('montonio.refund_processed', { refundId: p.refundUuid });
 }
