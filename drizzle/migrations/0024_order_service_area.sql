@@ -1,0 +1,2 @@
+ALTER TABLE public.orders ADD COLUMN IF NOT EXISTS service_area text CHECK (service_area IN ('Kauno m.', 'Kauno r.'));
+COMMENT ON COLUMN public.orders.service_area IS 'Explicit checkout city/district selection; legacy orders may be null.';

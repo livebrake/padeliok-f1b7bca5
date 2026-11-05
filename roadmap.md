@@ -17,5 +17,6 @@
 - [x] Synchronize price-type payment/invoice compatibility and safe reconciliation diagnostics; 34 focused tests and isolated text-price/refund regressions pass.
 - [ ] Apply compatibility migration to the separate production database and verify a fresh Montonio payment/email delivery — requires the production deployment/database owner; no real payment initiated.
 - [x] Implement verified Montonio refund history, atomic limits, lifecycle states and gross/refund/net reports without changing checkout or snapshots.
+- [x] Add explicit required Kaunas city/district checkout selection with persisted service area; 30 validation/server tests pass, complete form blocks unavailable cities before upload/payment, desktop/mobile checked.
 - [x] Verify refund regression tests, isolated database concurrency/security and public webhook rejection; document provider-delivery limitations.
 - [ ] Verify actual Montonio sandbox refund delivery and authenticated report rendering — requires a provider refund and an authorized team session; no real refund initiated.

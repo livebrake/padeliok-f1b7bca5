@@ -47,6 +47,7 @@ const payload = z.object({
   fullName: z.string().trim().max(120),
   email: z.string().trim().max(255),
   phone: z.string().trim().max(30),
+  serviceArea: z.string().max(50).default(""),
   projectGoal: z.string().max(120),
   komentaras: z.string().trim().max(1000),
   companyName: z.string().trim().max(200).default(""),
@@ -77,7 +78,8 @@ export const submitOrder = createServerFn({ method: "POST" })
     // Shared eligibility rules — the same browser-safe module the form uses.
     const fileMeta = v.filePaths.map((p) => ({ name: p.split("/").pop() ?? p, size: 1 }));
     const errs = validateCheckout({ ...v, noVat: v.noVat ? "1" : "0" }, fileMeta);
-    if (Object.keys(errs).length) return invalid(Object.values(errs)[0]!);
+    const firstError = Object.values(errs)[0];
+    if (firstError) return invalid(firstError);
 
     if (!isCo && v.fullName.split(/\s+/).length < 2)
       return invalid("Prašome įrašyti ir pavardę (mažiausiai du žodžius).");
@@ -143,6 +145,7 @@ export const submitOrder = createServerFn({ method: "POST" })
       full_name: fullName,
       email: v.email,
       phone,
+      service_area: v.serviceArea,
       plan_name: plan.name,
       price: charged,
       original_price: plan.price,

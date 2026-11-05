@@ -1,5 +1,10 @@
 import { z } from "zod";
 
+export const ACTIVE_SERVICE_AREAS = ["Kauno m.", "Kauno r."] as const;
+export const UPCOMING_SERVICE_AREAS = ["Vilnius", "Klaipėda", "Šiauliai"] as const;
+export const SERVICE_AREA_WARNING = "Atsiprašome, šiuo metu sklypų analizę atliekame tik Kaune ir Kauno rajone.";
+export const serviceAreaSchema = z.enum(ACTIVE_SERVICE_AREAS);
+
 // Normalizuoja lietuvišką numerį į +3706XXXXXXX; grąžina null, jei negaliojantis.
 export function normalizePhone(raw: string): string | null {
   const v = raw.trim();
@@ -123,6 +128,8 @@ export const agreementSchema = z.literal("1", { errorMap: () => ({ message: "Bū
 
 export function validateCheckout(values: Record<string, unknown>, files: { name: string; size: number }[]) {
   const errors: Record<string, string> = {};
+  if (!serviceAreaSchema.safeParse(values["serviceArea"]).success)
+    errors["serviceArea"] = values["serviceArea"] ? SERVICE_AREA_WARNING : "Pasirinkite miestą / rajoną.";
   const collect = (result: { success: boolean; error?: { issues: { path: (string | number)[]; message: string }[] } }) => {
     if (!result.success) result.error?.issues.forEach((issue) => {
       const key = String(issue.path[0]);

@@ -169,6 +169,13 @@
       "when": 1793802461606,
       "tag": "0023_payment_price_type_compatibility",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1793892444565,
+      "tag": "0024_order_service_area",
+      "breakpoints": true
     }
   ]
 }

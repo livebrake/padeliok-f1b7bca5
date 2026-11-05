@@ -231,6 +231,7 @@ export type Database = {
           refunded_amount_cents: number
           refunded_at: string | null
           response_file_paths: string[]
+          service_area: string | null
           status: string
           vat_code: string | null
         }
@@ -273,6 +274,7 @@ export type Database = {
           refunded_amount_cents?: number
           refunded_at?: string | null
           response_file_paths?: string[]
+          service_area?: string | null
           status?: string
           vat_code?: string | null
         }
@@ -315,6 +317,7 @@ export type Database = {
           refunded_amount_cents?: number
           refunded_at?: string | null
           response_file_paths?: string[]
+          service_area?: string | null
           status?: string
           vat_code?: string | null
         }

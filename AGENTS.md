@@ -10,6 +10,7 @@
 <!-- LOVABLE:END -->
 
 - Keep checkout eligibility in a browser-safe shared validation module used by the form and submission handler so required-field and agreement rules cannot diverge.
+- Store the explicit checkout service-area selection on orders; shared eligibility validates it before storage operations or payment creation, while legacy orders may retain null.
 - Classify preview hosts in the shared browser-safe preview-host module using the actual request URL inside gate handlers; production build flags cannot distinguish built previews from published sites, and admin authentication must remain independent.
 - Mark orders paid only from a Montonio token whose HS256 signature, access key and amount are verified server-side; return page and webhook share fulfillment which issues the invoice before acquiring a short payment_email_claimed_at lease, records payment_email_sent_at only after provider acceptance, and uses recipient-specific provider idempotency keys so retries do not duplicate emails.
 - Team authority lives only in protected team_roles and active team_members; profiles hold display data, never roles, to prevent privilege escalation.

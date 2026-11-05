@@ -8,6 +8,9 @@ import {
   schema,
   companySchema,
   validateCheckout,
+  ACTIVE_SERVICE_AREAS,
+  UPCOMING_SERVICE_AREAS,
+  SERVICE_AREA_WARNING,
   MAX_FILE_SIZE,
   MAX_FILES,
   FILE_TYPE_MESSAGE,
@@ -424,6 +427,7 @@ function Order({
   const [phase, setPhase] = useState<"upload" | "submit" | "redirect">("submit");
   const [clientType, setClientType] = useState<"fizinis" | "juridinis">("fizinis");
   const [noVat, setNoVat] = useState(false);
+  const [serviceArea, setServiceArea] = useState("");
   const [agreement, setAgreement] = useState(false);
   const [termsOpen, setTermsOpen] = useState(false);
   const [method, setMethod] = useState("");
@@ -474,7 +478,7 @@ function Order({
     const form = e.currentTarget;
     const fd = new FormData(form);
     const errs = validateCheckout(
-      { ...Object.fromEntries(fd), clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" },
+      { ...Object.fromEntries(fd), serviceArea, clientType, noVat: noVat ? "1" : "0", agreement: agreement ? "1" : "0" },
       all,
     );
     if (!method) errs["paymentMethod"] = "Pasirinkite mokėjimo būdą.";
@@ -524,6 +528,7 @@ function Order({
           fullName: String(fd.get("fullName") ?? ""),
           email: String(fd.get("email") ?? ""),
           phone: normalizePhone(String(fd.get("phone") ?? "")) ?? String(fd.get("phone") ?? ""),
+          serviceArea,
           projectGoal: String(fd.get("projectGoal") ?? ""),
           komentaras: String(fd.get("komentaras") ?? ""),
           companyName: String(fd.get("companyName") ?? ""),
@@ -726,6 +731,38 @@ function Order({
           </div>
           {field("email", "El. pašto adresas", "email", "vardas@pastas.lt")}
           {field("phone", "Telefono numeris", "tel", "+370 600 00000", "Pvz.: +370 600 00000 arba 0 600 00000")}
+        </div>
+        <div className="block text-sm" data-validation-field="serviceArea">
+          <span className="font-medium">
+            Pasirinkite miestą / rajoną <span className="text-destructive">*</span>
+          </span>
+          <div role="group" aria-label="Pasirinkite miestą / rajoną" aria-invalid={!!errors["serviceArea"]}
+            aria-describedby={errors["serviceArea"] ? "order-error-serviceArea" : undefined}
+            className="mt-2 flex flex-wrap gap-2">
+            {ACTIVE_SERVICE_AREAS.map((area) => (
+              <Button key={area} type="button" variant="outline" aria-pressed={serviceArea === area}
+                disabled={paying}
+                onClick={() => { setServiceArea(area); clear("serviceArea"); }}
+                className={`h-auto rounded-full border px-4 py-1.5 shadow-none ${serviceArea === area
+                  ? "border-primary bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground"
+                  : errors["serviceArea"] ? "border-destructive ring-2 ring-destructive" : "border-border hover:bg-muted"}`}>
+                {area}
+              </Button>
+            ))}
+            {UPCOMING_SERVICE_AREAS.map((area) => (
+              <Button key={area} type="button" variant="outline" aria-disabled="true"
+                disabled={paying}
+                onClick={() => { setServiceArea(area); setErrors((previous) => ({ ...previous, serviceArea: SERVICE_AREA_WARNING })); }}
+                className="h-auto cursor-not-allowed rounded-full border-border bg-muted px-4 py-1.5 text-muted-foreground shadow-none hover:bg-muted hover:text-muted-foreground">
+                {area} <span className="text-xs">(Jau greitai)</span>
+              </Button>
+            ))}
+          </div>
+          {errors["serviceArea"] && (
+            <span id="order-error-serviceArea" role="alert" className="mt-1 block text-xs text-destructive">
+              {errors["serviceArea"]}
+            </span>
+          )}
         </div>
         <div className="block text-sm" data-validation-field="projectGoal">
           <span className="font-medium">

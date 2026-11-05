@@ -1,11 +1,20 @@
 import { describe, expect, it } from "vitest";
 import { validateCheckout } from "@/lib/order-validation";
 
-const person = { clientType: "fizinis", fullName: "Jonas Jonaitis", email: "jonas@example.lt", phone: "060000000", projectGoal: "Kita", komentaras: "Patikrinti statybos galimybes.", agreement: "1" };
+const person = { clientType: "fizinis", fullName: "Jonas Jonaitis", email: "jonas@example.lt", phone: "060000000", serviceArea: "Kauno m.", projectGoal: "Kita", komentaras: "Patikrinti statybos galimybes.", agreement: "1" };
 const company = { ...person, clientType: "juridinis", fullName: "Jonas", companyName: "UAB Pavyzdys", companyCode: "123456789", companyAddress: "Kauno g. 1, Kaunas", vatCode: "LT123456789", noVat: "0" };
 const files = [{ name: "planas.pdf", size: 100 }];
 
 describe("Checkout eligibility", () => {
+  it.each([undefined, ""])("requires an explicit service area: %s", (serviceArea) => {
+    expect(validateCheckout({ ...person, serviceArea }, files)["serviceArea"]).toBe("Pasirinkite miestą / rajoną.");
+  });
+  it.each(["Kauno m.", "Kauno r."])("accepts active area %s", (serviceArea) => {
+    expect(validateCheckout({ ...person, serviceArea }, files)).toEqual({});
+  });
+  it.each(["Vilnius", "Klaipėda", "Šiauliai", "other"])("blocks unavailable area %s", (serviceArea) => {
+    expect(validateCheckout({ ...person, serviceArea }, files)["serviceArea"]).toBe("Atsiprašome, šiuo metu sklypų analizę atliekame tik Kaune ir Kauno rajone.");
+  });
   it.each(["fullName", "email", "phone"])("requires private client %s", (field) => {
     expect(validateCheckout(person, files)).toEqual({});
     expect(validateCheckout({ ...person, [field]: "" }, files)[field]).toBeTruthy();
