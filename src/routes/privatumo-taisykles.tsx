@@ -16,6 +16,7 @@ const sections: LegalSection[] = [
       "Įmonės duomenys: Įmonės pavadinimas, įmonės kodas, PVM kodas, adresas.",
       "Užsakymo failai/dokumentai: Kliento įkelti failai, reikalingi paslaugos atlikimui.",
       "Mokėjimo informacija: Mokėjimo būsena ir operacijos identifikatoriai.",
+      "Techniniai duomenys ir slapukai: Griežtai būtini sesijos slapukai, reikalingi sklandžiam platformos ir užsakymų krepšelio veikimui.",
     ] },
   { title: "3. Duomenų tvarkymo teisinis pagrindas", items: [
     "Sutarties vykdymas (BDAR 6 str. 1 d. b punktas): Duomenys tvarkomi siekiant įvykdyti jūsų užsakymą.",
@@ -30,6 +31,10 @@ const sections: LegalSection[] = [
   ] },
   { title: "6. Jūsų teisės", paragraphs: [
     "Jūs turite teisę susipažinti su savo asmens duomenimis, reikalauti ištaisyti netikslius duomenis arba juos ištrinti, jei tai neprieštarauja įstatymų įsipareigojimams.",
+  ] },
+  { title: "7. Slapukai ir svetainės analitika", paragraphs: [
+    "7.1. Svetainėje padeliok.lt naudojami tik griežtai būtiniai sesijos slapukai, kurie užtikrina platformos ir užsakymų pateikimo funkcionalumą. Rinkodaros ar trečiųjų šalių sekimo slapukai nenaudojami.",
+    "7.2. Svetainės lankomumo statistikai fiksuoti naudojame „Vercel Analytics“ įrankį, kuris veikia be slapukų (cookie-less) ir nerenka asmens duomenų, leidžiančių identifikuoti konkrečiam lankytojui (renkama tik apibendrinta lankomumo informacija).",
   ] },
 ];
 
