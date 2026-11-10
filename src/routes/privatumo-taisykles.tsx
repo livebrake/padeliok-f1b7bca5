@@ -4,8 +4,10 @@ import { LegalPage, type LegalSection } from "@/components/LegalPage";
 const T = "Privatumo politika — padeliOK.lt";
 const D = "Kokius asmens duomenis renka padeliOK.lt, kokiu tikslu, kaip juos saugo ir kokias teises turite.";
 
+declare const __PRIVACY_UPDATED__: string;
+
 const intro = [
-  "Paskutinį kartą atnaujinta: 2026 m. birželio 16 d.",
+  `Paskutinį kartą atnaujinta: ${__PRIVACY_UPDATED__}`,
   "Šioje privatumo politikoje pateikiama informacija apie tai, kaip platforma padeliok.lt (toliau – mes) tvarko savo lankytojų ir klientų asmens duomenis.",
   "Mums rūpi jūsų privatumas ir duomenų saugumas, todėl tvarkydami duomenis vadovaujamės Europos Sąjungos Bendruoju duomenų apsaugos reglamentu (BDAR), Lietuvos Respublikos asmens duomenų teisinės apsaugos įstatymu bei kitais teisės aktais.",
 ];
