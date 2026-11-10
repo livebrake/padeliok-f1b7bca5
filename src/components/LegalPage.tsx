@@ -1,9 +1,9 @@
 import { Link } from "@tanstack/react-router";
 import { ArrowLeft } from "lucide-react";
 
-export type LegalSection = { title: string; paragraphs?: string[]; items?: string[] };
+export type LegalSection = { title: string; paragraphs?: string[]; items?: string[]; endNote?: string };
 
-export function LegalPage({ title, sections }: { title: string; sections: LegalSection[] }) {
+export function LegalPage({ title, intro, sections }: { title: string; intro?: string[]; sections: LegalSection[] }) {
   return (
     <main className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border">
@@ -16,6 +16,13 @@ export function LegalPage({ title, sections }: { title: string; sections: LegalS
       </header>
       <article className="mx-auto max-w-3xl px-5 py-12">
         <h1 className="text-3xl font-bold md:text-4xl">{title}</h1>
+        {intro && (
+          <div className="mt-6 space-y-3">
+            {intro.map((p) => (
+              <p key={p} className="leading-relaxed text-muted-foreground">{p}</p>
+            ))}
+          </div>
+        )}
         <div className="mt-10 space-y-8">
           {sections.map((s) => (
             <section key={s.title}>
@@ -27,6 +34,9 @@ export function LegalPage({ title, sections }: { title: string; sections: LegalS
                 <ul className="mt-3 list-disc space-y-2 pl-5 leading-relaxed text-muted-foreground">
                   {s.items.map((i) => <li key={i}>{i}</li>)}
                 </ul>
+              )}
+              {s.endNote && (
+                <p className="mt-3 leading-relaxed text-muted-foreground">{s.endNote}</p>
               )}
             </section>
           ))}
