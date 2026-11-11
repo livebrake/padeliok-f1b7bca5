@@ -537,6 +537,7 @@ function Order({
           vatCode: String(fd.get("vatCode") ?? ""),
           noVat,
           agreement: "1",
+          website: String(fd.get("website") ?? ""),
           filePaths: paths,
           paymentMethod: method,
           promoCode: promo?.code ?? "",
@@ -631,6 +632,10 @@ function Order({
   return (
     <form onSubmit={submit} noValidate className="grid md:grid-cols-[1fr_300px]">
       <div className="space-y-5 p-6 md:p-8">
+        <div aria-hidden="true" style={{ position: "absolute", left: "-9999px", width: 1, height: 1, overflow: "hidden", opacity: 0, pointerEvents: "none" }}>
+          <label htmlFor="website">Svetainė</label>
+          <input id="website" name="website" type="text" tabIndex={-1} autoComplete="off" defaultValue="" />
+        </div>
         <h2 className="text-2xl font-bold">Krepšelis</h2>
         <div className="flex flex-wrap items-center gap-2">
           <span className="text-sm text-muted-foreground">Pasirinktas planas:</span>

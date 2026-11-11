@@ -59,6 +59,7 @@ const payload = z.object({
   filePaths: z.array(z.string().max(300)).max(5).default([]),
   paymentMethod: z.string().trim().min(1).max(40),
   promoCode: z.string().max(60).default(""),
+  website: z.string().max(500).default(""),
 });
 
 export type SubmitResult =
@@ -73,6 +74,8 @@ export const submitOrder = createServerFn({ method: "POST" })
     const parsed = payload.safeParse(data);
     if (!parsed.success) return invalid("Neteisingi užsakymo duomenys.");
     const v = parsed.data;
+    // Honeypot: humans never see this field; any value means an automated submission.
+    if (v.website.trim()) return invalid("Neteisingi užsakymo duomenys.");
     const isCo = v.clientType === "juridinis";
 
     // Shared eligibility rules — the same browser-safe module the form uses.
