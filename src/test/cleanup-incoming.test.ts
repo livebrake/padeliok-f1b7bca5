@@ -23,8 +23,8 @@ const post = (token?: string) =>
 
 describe("cleanup-incoming PADELIOK_CRON_SECRET", () => {
   beforeEach(() => {
-    process.env.PADELIOK_CRON_SECRET = "testas123";
-    process.env.LOVABLE_CRON_SECRET = "kitas";
+    process.env["PADELIOK_CRON_SECRET"] = "testas123";
+    process.env["LOVABLE_CRON_SECRET"] = "kitas";
     remove.mockClear();
   });
   it("accepts the PADELIOK key and deletes only files older than 24h", async () => {
