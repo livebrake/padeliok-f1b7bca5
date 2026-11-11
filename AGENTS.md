@@ -27,3 +27,4 @@
 - Verify Montonio order/refund JWTs and reconcile refund rows through documented GET order details; serialize service-only event recording on the order row, retain immutable event identities and successful refund totals, and derive finance in integer cents without altering original invoices or promo snapshots.
 - Use one explicit Montonio environment selector for checkout and reconciliation, retaining sandbox by default; refund period totals use observed successful-refund dates because the documented API lacks settlement timestamps.
 - Cast stored order prices to numeric inside payment and invoice RPCs to support legacy text prices; retain service-only execution and log database error fields without tokens for safe diagnosis.
+- Abandoned checkout uploads in storage incoming/ are purged after 24h by a daily managed HTTP schedule calling /api/public/jobs/cleanup-incoming; uploads moved to order folders are never touched.

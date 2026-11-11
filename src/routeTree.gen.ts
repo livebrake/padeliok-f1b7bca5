@@ -19,6 +19,7 @@ import { Route as MiskoSkydasIndexRouteImport } from './routes/misko-skydas.inde
 import { Route as MiskoSkydasJungtisRouteImport } from './routes/misko-skydas.jungtis'
 import { Route as MiskoSkydasPakvietimasRouteImport } from './routes/misko-skydas.pakvietimas'
 import { Route as ApiPublicMontonioRouteImport } from './routes/api/public/montonio'
+import { Route as ApiPublicJobsCleanupIncomingRouteImport } from './routes/api/public/jobs/cleanup-incoming'
 
 const IndexRoute = IndexRouteImport.update({
   id: '/',
@@ -70,6 +71,12 @@ const ApiPublicMontonioRoute = ApiPublicMontonioRouteImport.update({
   path: '/api/public/montonio',
   getParentRoute: () => rootRouteImport,
 } as any)
+const ApiPublicJobsCleanupIncomingRoute =
+  ApiPublicJobsCleanupIncomingRouteImport.update({
+    id: '/api/public/jobs/cleanup-incoming',
+    path: '/api/public/jobs/cleanup-incoming',
+    getParentRoute: () => rootRouteImport,
+  } as any)
 
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
@@ -82,6 +89,7 @@ export interface FileRoutesByFullPath {
   '/misko-skydas/pakvietimas': typeof MiskoSkydasPakvietimasRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
   '/api/public/montonio': typeof ApiPublicMontonioRoute
+  '/api/public/jobs/cleanup-incoming': typeof ApiPublicJobsCleanupIncomingRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
@@ -94,6 +102,7 @@ export interface FileRoutesByTo {
   '/misko-skydas/pakvietimas': typeof MiskoSkydasPakvietimasRoute
   '/misko-skydas': typeof MiskoSkydasIndexRoute
   '/api/public/montonio': typeof ApiPublicMontonioRoute
+  '/api/public/jobs/cleanup-incoming': typeof ApiPublicJobsCleanupIncomingRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
@@ -107,6 +116,7 @@ export interface FileRoutesById {
   '/misko-skydas/pakvietimas': typeof MiskoSkydasPakvietimasRoute
   '/misko-skydas/': typeof MiskoSkydasIndexRoute
   '/api/public/montonio': typeof ApiPublicMontonioRoute
+  '/api/public/jobs/cleanup-incoming': typeof ApiPublicJobsCleanupIncomingRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
@@ -121,6 +131,7 @@ export interface FileRouteTypes {
     | '/misko-skydas/pakvietimas'
     | '/misko-skydas/'
     | '/api/public/montonio'
+    | '/api/public/jobs/cleanup-incoming'
   fileRoutesByTo: FileRoutesByTo
   to:
     | '/'
@@ -133,6 +144,7 @@ export interface FileRouteTypes {
     | '/misko-skydas/pakvietimas'
     | '/misko-skydas'
     | '/api/public/montonio'
+    | '/api/public/jobs/cleanup-incoming'
   id:
     | '__root__'
     | '/'
@@ -145,6 +157,7 @@ export interface FileRouteTypes {
     | '/misko-skydas/pakvietimas'
     | '/misko-skydas/'
     | '/api/public/montonio'
+    | '/api/public/jobs/cleanup-incoming'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
@@ -158,6 +171,7 @@ export interface RootRouteChildren {
   MiskoSkydasPakvietimasRoute: typeof MiskoSkydasPakvietimasRoute
   MiskoSkydasIndexRoute: typeof MiskoSkydasIndexRoute
   ApiPublicMontonioRoute: typeof ApiPublicMontonioRoute
+  ApiPublicJobsCleanupIncomingRoute: typeof ApiPublicJobsCleanupIncomingRoute
 }
 
 declare module '@tanstack/react-router' {
@@ -232,6 +246,13 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof ApiPublicMontonioRouteImport
       parentRoute: typeof rootRouteImport
     }
+    '/api/public/jobs/cleanup-incoming': {
+      id: '/api/public/jobs/cleanup-incoming'
+      path: '/api/public/jobs/cleanup-incoming'
+      fullPath: '/api/public/jobs/cleanup-incoming'
+      preLoaderRoute: typeof ApiPublicJobsCleanupIncomingRouteImport
+      parentRoute: typeof rootRouteImport
+    }
   }
 }
 
@@ -246,6 +267,7 @@ const rootRouteChildren: RootRouteChildren = {
   MiskoSkydasPakvietimasRoute: MiskoSkydasPakvietimasRoute,
   MiskoSkydasIndexRoute: MiskoSkydasIndexRoute,
   ApiPublicMontonioRoute: ApiPublicMontonioRoute,
+  ApiPublicJobsCleanupIncomingRoute: ApiPublicJobsCleanupIncomingRoute,
 }
 export const routeTree = rootRouteImport
   ._addFileChildren(rootRouteChildren)
