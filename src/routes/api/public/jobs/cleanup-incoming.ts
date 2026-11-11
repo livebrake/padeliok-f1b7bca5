@@ -5,12 +5,25 @@ import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
 // moved to an order folder, so they belong to unfinished orders (GDPR minimisation).
 const MAX_AGE_MS = 24 * 60 * 60 * 1000;
 
+// Production (Vercel + own DB pg_cron) authenticates with PADELIOK_CRON_SECRET;
+// the managed Lovable schedule keeps using the generated helper.
+async function matchesPadeliokSecret(request: Request): Promise<boolean> {
+  const secret = process.env["PADELIOK_CRON_SECRET"];
+  const token = /^Bearer ([^\s,]+)$/.exec(request.headers.get("authorization") ?? "")?.[1];
+  if (!secret || !token) return false;
+  const { createHash, timingSafeEqual } = await import("node:crypto");
+  const d = (v: string) => createHash("sha256").update(v, "utf8").digest();
+  return timingSafeEqual(d(token), d(secret));
+}
+
 export const Route = createFileRoute("/api/public/jobs/cleanup-incoming")({
   server: {
     handlers: {
       POST: async ({ request }) => {
-        const authFailure = await authenticateCronRequest(request);
-        if (authFailure) return authFailure;
+        if (!(await matchesPadeliokSecret(request))) {
+          const authFailure = await authenticateCronRequest(request);
+          if (authFailure) return authFailure;
+        }
         const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
         const bucket = supabaseAdmin.storage.from("order-documents");
         const cutoff = Date.now() - MAX_AGE_MS;
