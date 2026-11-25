@@ -35,7 +35,7 @@ import {
   ShieldCheck,
 } from "lucide-react";
 import { toast } from "sonner";
-import { submitOrder, checkPromo } from "@/lib/orders.functions";
+import { submitOrder, checkPromo, createUploadUrl } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
 import { withRequestTimeout } from "@/lib/request-timeout";
 import { Button } from "@/components/ui/button";
@@ -508,9 +508,10 @@ function Order({
       // serverless request body limit.
       const paths: string[] = [];
       for (const file of all) {
-        const safe = file.name.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
-        const path = `incoming/${crypto.randomUUID().slice(0, 8)}-${safe}`;
-        const { error } = await supabase.storage.from("order-documents").upload(path, file, {
+        let path: string, token: string;
+        try { ({ path, token } = await createUploadUrl({ data: { fileName: file.name } })); }
+        catch (e) { toast.error(`Nepavyko įkelti failo „${file.name}“: ${e instanceof Error ? e.message : ""}`); setPaying(false); return; }
+        const { error } = await supabase.storage.from("order-documents").uploadToSignedUrl(path, token, file, {
           contentType: file.type || "application/octet-stream",
         });
         if (error) {

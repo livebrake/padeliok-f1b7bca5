@@ -191,3 +191,16 @@ export const submitOrder = createServerFn({ method: "POST" })
       return { ok: false, code: "payment", message: `Nepavyko inicijuoti mokėjimo: ${e instanceof Error ? e.message : "nežinoma klaida"}` };
     }
   });
+
+/** Issues a one-time signed upload URL for a checkout file in incoming/; the server picks the path. */
+export const createUploadUrl = createServerFn({ method: "POST" })
+  .inputValidator((d: { fileName: string }) => z.object({ fileName: z.string().min(1).max(300) }).parse(d))
+  .handler(async ({ data }) => {
+    const safe = data.fileName.replace(/[^a-zA-Z0-9._-]/g, "_").slice(-100);
+    if (!FILE_EXT.test(safe)) throw new Error("Netinkamas failo formatas.");
+    const path = `incoming/${crypto.randomUUID().slice(0, 8)}-${safe}`;
+    const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
+    const { data: signed, error } = await supabaseAdmin.storage.from("order-documents").createSignedUploadUrl(path);
+    if (error || !signed) throw new Error("Nepavyko paruošti failo įkėlimo.");
+    return { path, token: signed.token };
+  });

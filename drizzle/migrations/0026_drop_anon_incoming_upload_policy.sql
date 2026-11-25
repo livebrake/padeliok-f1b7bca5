@@ -1,0 +1,1 @@
+DROP POLICY IF EXISTS "anon_uploads_order_documents_incoming" ON storage.objects;
