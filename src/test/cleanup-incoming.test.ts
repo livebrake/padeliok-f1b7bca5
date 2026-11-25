@@ -9,7 +9,10 @@ const list = vi.fn(async () => ({
   error: null,
 }));
 vi.mock("@/integrations/supabase/client.server", () => ({
-  supabaseAdmin: { storage: { from: () => ({ list, remove }) } },
+  supabaseAdmin: {
+    storage: { from: () => ({ list, remove }) },
+    from: () => { const q: any = { select: () => q, eq: () => q, lt: () => q, is: () => q, limit: async () => ({ data: [], error: null }) }; return q; },
+  },
 }));
 
 import { Route } from "@/routes/api/public/jobs/cleanup-incoming";
@@ -30,7 +33,7 @@ describe("cleanup-incoming PADELIOK_CRON_SECRET", () => {
   it("accepts the PADELIOK key and deletes only files older than 24h", async () => {
     const res = await post("testas123");
     expect(res.status).toBe(200);
-    expect(await res.json()).toEqual({ success: true, removed: 1 });
+    expect(await res.json()).toEqual({ success: true, removed: 1, purgedOrders: 0 });
     expect(remove).toHaveBeenCalledWith(["incoming/old.pdf"]);
   });
   it("rejects a wrong key without deleting", async () => {

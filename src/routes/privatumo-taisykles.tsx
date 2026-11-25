@@ -41,7 +41,8 @@ const sections: LegalSection[] = [
     ],
     items: [
       "Informacija apie sudarytas sutartis ir užsakymus saugoma 10 metų po santykių pasibaigimo (remiantis buhalterinės apskaitos ir teisinio ieškinio senaties reikalavimais).",
-      "Kliento įkelti dokumentai ir paruoštos sklypo analizės išvados saugomos tol, kol tai būtina paslaugai suteikti ir kokybei užtikrinti.",
+      "Kliento įkelti sklypo dokumentai ir padeliok.lt paruoštos sklypo analizės ataskaitos saugomos 6 mėnesius nuo paslaugos suteikimo (užsakymo įvykdymo). Suėjus šiam terminui, failai automatiškai ir negrįžtamai pašalinami, o sistemoje lieka tik užsakymo registras ir finansiniai duomenys.",
+      "Nebaigtų užsakymų metu įkelti dokumentai automatiškai ištrinami po 24 valandų.",
     ],
     endNote:
       "3.3. Atsarginės kopijos (back-up): Siekiant užtikrinti sistemų tęstinumą, duomenys gali būti dubliuojami atsarginėse kopijose, kurios ištrinamos per saugų terminą nuo pirminių duomenų pašalinimo.",

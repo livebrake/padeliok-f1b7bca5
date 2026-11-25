@@ -14,6 +14,27 @@ export type Database = {
   }
   public: {
     Tables: {
+      email_templates: {
+        Row: {
+          body: string
+          id: string
+          subject: string
+          updated_at: string
+        }
+        Insert: {
+          body: string
+          id: string
+          subject: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string
+          id?: string
+          subject?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       invoice_settings: {
         Row: {
           bank_iban: string
@@ -201,10 +222,12 @@ export type Database = {
           company_address: string | null
           company_code: string | null
           company_name: string | null
+          completed_at: string | null
           contact_person: string | null
           created_at: string
           discount_amount: number
           discount_label: string | null
+          documents_purged_at: string | null
           email: string
           file_paths: string[]
           first_name: string
@@ -230,6 +253,7 @@ export type Database = {
           promo_note: string | null
           refunded_amount_cents: number
           refunded_at: string | null
+          report_sent_at: string | null
           response_file_paths: string[]
           service_area: string | null
           status: string
@@ -244,10 +268,12 @@ export type Database = {
           company_address?: string | null
           company_code?: string | null
           company_name?: string | null
+          completed_at?: string | null
           contact_person?: string | null
           created_at?: string
           discount_amount?: number
           discount_label?: string | null
+          documents_purged_at?: string | null
           email: string
           file_paths?: string[]
           first_name?: string
@@ -273,6 +299,7 @@ export type Database = {
           promo_note?: string | null
           refunded_amount_cents?: number
           refunded_at?: string | null
+          report_sent_at?: string | null
           response_file_paths?: string[]
           service_area?: string | null
           status?: string
@@ -287,10 +314,12 @@ export type Database = {
           company_address?: string | null
           company_code?: string | null
           company_name?: string | null
+          completed_at?: string | null
           contact_person?: string | null
           created_at?: string
           discount_amount?: number
           discount_label?: string | null
+          documents_purged_at?: string | null
           email?: string
           file_paths?: string[]
           first_name?: string
@@ -316,6 +345,7 @@ export type Database = {
           promo_note?: string | null
           refunded_amount_cents?: number
           refunded_at?: string | null
+          report_sent_at?: string | null
           response_file_paths?: string[]
           service_area?: string | null
           status?: string

@@ -407,7 +407,7 @@ function Modal({ children, onClose }: { children: ReactNode; onClose: () => void
 }
 
 type CompanyKey = keyof typeof companySchema.shape;
-const ACCEPT = ".pdf,.png,.jpg,.jpeg,.docx";
+const ACCEPT = ".pdf,.png,.jpg,.jpeg";
 
 function Order({
   plans,
@@ -852,7 +852,7 @@ function Order({
           <Drop
             label="Registrų centro išrašas"
             accept={ACCEPT}
-            hint="PDF, PNG, JPG, DOCX"
+            hint="PDF, PNG, JPG"
             files={rc}
             setFiles={(f) => {
               setRc(f);
@@ -864,7 +864,7 @@ function Order({
           <Drop
             label="Žemės sklypo ribų planas"
             accept={ACCEPT}
-            hint="PDF, PNG, JPG, DOCX"
+            hint="PDF, PNG, JPG"
             files={ribos}
             setFiles={(f) => {
               setRibos(f);

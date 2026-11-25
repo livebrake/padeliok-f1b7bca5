@@ -176,6 +176,13 @@
       "when": 1793892444565,
       "tag": "0024_order_service_area",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1795622812225,
+      "tag": "0025_migration",
+      "breakpoints": true
     }
   ]
 }

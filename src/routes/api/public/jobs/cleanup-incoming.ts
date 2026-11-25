@@ -1,5 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { authenticateCronRequest } from "@/integrations/supabase/cron-auth";
+import { DOCUMENT_RETENTION_MONTHS } from "@/lib/report-email";
 
 // Deletes abandoned checkout uploads: files in incoming/ older than 24h were never
 // moved to an order folder, so they belong to unfinished orders (GDPR minimisation).
@@ -38,7 +39,20 @@ export const Route = createFileRoute("/api/public/jobs/cleanup-incoming")({
           removed += old.length;
           if (old.length < (data ?? []).length) break;
         }
-        return Response.json({ success: true, removed });
+        // Completed orders keep their record and finance data; only files go after the retention period.
+        const retentionCutoff = new Date(); retentionCutoff.setMonth(retentionCutoff.getMonth() - DOCUMENT_RETENTION_MONTHS);
+        const { data: expired, error: expError } = await supabaseAdmin.from("orders").select("id, file_paths, response_file_paths")
+          .eq("status", "Atlikta").lt("completed_at", retentionCutoff.toISOString()).is("documents_purged_at", null).limit(200);
+        if (expError) return Response.json({ error: expError.message, removed }, { status: 500 });
+        let purgedOrders = 0;
+        for (const o of expired ?? []) {
+          const paths = [...o.file_paths, ...o.response_file_paths];
+          if (paths.length) { const { error: e } = await bucket.remove(paths); if (e) continue; }
+          await supabaseAdmin.from("orders").update({ file_paths: [], response_file_paths: [], documents_purged_at: new Date().toISOString() }).eq("id", o.id);
+          await supabaseAdmin.from("order_audit_logs").insert({ order_id: o.id, actor_id: null, actor_name: "Sistema", action_type: "NOTE", description: "Dokumentai automatiškai pašalinti pasibaigus 6 mėn. saugojimo terminui." });
+          purgedOrders++;
+        }
+        return Response.json({ success: true, removed, purgedOrders });
       },
     },
   },

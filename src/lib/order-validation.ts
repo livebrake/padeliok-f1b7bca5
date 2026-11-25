@@ -118,10 +118,10 @@ export const companySchema = z.object({
 });
 export const MAX_FILE_SIZE = 20 * 1024 * 1024;
 export const MAX_FILES = 2;
-export const FILE_EXT = /\.(pdf|png|jpe?g|docx)$/i;
+export const FILE_EXT = /\.(pdf|png|jpe?g)$/i;
 export const FILE_REQUIRED_MESSAGE = "Būtina įkelti užsakymo dokumentą/failą.";
 export const FILE_COUNT_MESSAGE = "Galima prisegti ne daugiau kaip 2 failus.";
-export const FILE_TYPE_MESSAGE = "Netinkamas failo formatas. Leidžiami tik PDF, PNG, JPG ir DOCX failai.";
+export const FILE_TYPE_MESSAGE = "Netinkamas failo formatas. Leidžiami tik PDF, PNG ir JPG failai.";
 export const FILE_SIZE_MESSAGE = "Failas per didelis. Maksimalus leistinas vieno failo dydis yra 20 MB.";
 
 export const agreementSchema = z.literal("1", { errorMap: () => ({ message: "Būtina sutikti su Paslaugų teikimo sutartimi." }) });
