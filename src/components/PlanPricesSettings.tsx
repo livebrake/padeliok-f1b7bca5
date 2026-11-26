@@ -76,7 +76,7 @@ function SaleFields({ id, s, onChange }: { id: string; s: Sale; onChange: (s: Sa
 
 export function PlanPricesSettings() {
   const [rows, setRows] = useState<Row[] | null>(null);
-  const [bulk, setBulk] = useState<Sale>({ ...EMPTY, active: true });
+  const [bulk, setBulk] = useState<Sale>({ ...EMPTY });
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
