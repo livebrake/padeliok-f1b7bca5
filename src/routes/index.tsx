@@ -33,11 +33,14 @@ import {
   Loader2,
   UserCheck,
   ShieldCheck,
+  Tag,
 } from "lucide-react";
+const fmtPrice = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2)).replace(".", ",");
 import { toast } from "sonner";
 import { submitOrder, checkPromo, createUploadUrl } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
 import { withRequestTimeout } from "@/lib/request-timeout";
+import { planSale, saleTimeLeft, SALE_PROMO_BLOCKED, type PlanSale, type SaleRow } from "@/lib/plan-sale";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 
@@ -59,7 +62,7 @@ export const Route = createFileRoute("/")({
   component: Index,
 });
 
-type Plan = { id: string; name: string; price: number; desc: string; features: string[]; popular?: boolean };
+type Plan = { id: string; name: string; price: number; desc: string; features: string[]; popular?: boolean; sale?: PlanSale | undefined };
 const PLANS: Plan[] = [
   {
     id: "bazinis",
@@ -136,18 +139,18 @@ function Btn({
 }
 
 function usePlans(): Plan[] {
-  const [prices, setPrices] = useState<Record<string, number>>({});
+  const [prices, setPrices] = useState<Record<string, SaleRow>>({});
   useEffect(() => {
     // Default prices stay visible until (and unless) the database answers.
     const controller = new AbortController();
     const timer = setTimeout(() => controller.abort(), 8000);
-    Promise.resolve(supabase.from("plan_prices").select("plan_key, price").abortSignal(controller.signal))
+    Promise.resolve(supabase.from("plan_prices").select("plan_key, price, sale_active, sale_type, sale_value, sale_starts_at, sale_ends_at, sale_badge, sale_allow_promo").abortSignal(controller.signal))
       .then(
         ({ data }) => {
           if (controller.signal.aborted) return;
           if (data)
             setPrices(
-              Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, Number(r.price)])),
+              Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, r])),
             );
         },
         () => undefined,
@@ -158,7 +161,12 @@ function usePlans(): Plan[] {
       clearTimeout(timer);
     };
   }, []);
-  return PLANS.map((p) => ({ ...p, price: prices[p.id] ?? p.price }));
+  return PLANS.map((p) => {
+    const row = prices[p.id];
+    if (!row) return p;
+    const sale = planSale(row);
+    return { ...p, price: sale.final, sale: sale.status === "active" ? sale : undefined };
+  });
 }
 
 function Index() {
@@ -264,7 +272,21 @@ function Index() {
               )}
               <h3 className="text-xl font-semibold">{p.name}</h3>
               <p className="mt-1 min-h-[2.5rem] text-sm leading-snug text-muted-foreground text-balance">{p.desc}</p>
-              <p className="mt-5 font-display text-4xl font-bold">{p.price} €</p>
+              {p.sale && (
+                <span className="absolute -right-3 -top-4 z-10 inline-flex rotate-3 items-center gap-1 whitespace-nowrap rounded-md bg-destructive px-3 py-1 text-xs font-semibold uppercase text-destructive-foreground shadow-md">
+                  <Tag className="h-3 w-3 shrink-0" />
+                  {p.sale.badge ? `${p.sale.badge} · ${p.sale.tag}` : `${p.sale.tag} nuolaida`}
+                </span>
+              )}
+              <p className="mt-5 flex flex-wrap items-baseline gap-x-3 font-display">
+                <span className="text-4xl font-bold">{fmtPrice(p.price)} €</span>
+                {p.sale && <s className="text-xl font-medium text-muted-foreground">{fmtPrice(p.sale.base)} €</s>}
+              </p>
+              {p.sale && saleTimeLeft(p.sale.endsAt) && (
+                <p className="mt-1 flex items-center gap-1 text-xs font-medium text-destructive">
+                  <Clock className="h-3.5 w-3.5" /> {saleTimeLeft(p.sale.endsAt)}
+                </p>
+              )}
               <ul className="mt-6 flex-1 space-y-3 text-sm">
                 {p.features.map((f) => (
                   <li key={f} className="flex gap-2">
@@ -888,8 +910,15 @@ function Order({
         <h3 className="font-semibold">Užsakymo suvestinė</h3>
         <div className="flex justify-between text-sm">
           <span>Planas „{plan.name}“</span>
-          <span>{plan.price} €</span>
+          <span className="flex items-baseline gap-2">
+            {plan.sale && <s className="text-muted-foreground">{fmtPrice(plan.sale.base)} €</s>}
+            {fmtPrice(plan.price)} €
+          </span>
         </div>
+        {plan.sale && <p className="text-xs font-medium text-destructive">Akcija {plan.sale.tag}{plan.sale.badge ? ` · ${plan.sale.badge}` : ""}</p>}
+        {plan.sale && !plan.sale.allowPromo ? (
+          <p className="text-xs text-muted-foreground">{SALE_PROMO_BLOCKED}</p>
+        ) : (
         <div className="flex flex-col gap-2">
           <label htmlFor="order-promo" className="text-sm font-semibold">Nuolaidos kodas</label>
           <div className="flex gap-2">
@@ -909,11 +938,12 @@ function Order({
           {promo && <p role="status" className="text-xs font-medium text-success">{promo.label}</p>}
           {promoMsg && <p role="alert" className="text-xs text-destructive">{promoMsg}</p>}
         </div>
+        )}
         <div className="flex items-baseline justify-between border-t border-border pt-4 font-display text-xl font-bold">
           <span>Iš viso</span>
           <span className="flex items-baseline gap-2">
-            {promo && <s className="text-base font-medium text-muted-foreground">{plan.price} €</s>}
-            <span>{promo ? promo.final : plan.price} €</span>
+            {(promo || plan.sale) && <s className="text-base font-medium text-muted-foreground">{fmtPrice(plan.sale?.base ?? plan.price)} €</s>}
+            <span>{fmtPrice(promo ? promo.final : plan.price)} €</span>
           </span>
         </div>
         <p className="text-xs text-muted-foreground">Kaina su PVM</p>

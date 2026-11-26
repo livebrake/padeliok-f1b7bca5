@@ -29,3 +29,4 @@
 - Use one explicit Montonio environment selector for checkout, reconciliation and the supervisor-only settings indicator, retaining sandbox by default; return only the environment through authenticated RPC, never keys; refund period totals use observed successful-refund dates because the documented API lacks settlement timestamps.
 - Cast stored order prices to numeric inside payment and invoice RPCs to support legacy text prices; retain service-only execution and log database error fields without tokens for safe diagnosis.
 - Abandoned checkout uploads in storage incoming/ are purged after 24h by a daily managed HTTP schedule calling /api/public/jobs/cleanup-incoming; uploads moved to order folders are never touched.
+- Plan sale rules live in browser-safe src/lib/plan-sale.ts shared by cards, checkout, admin and submitOrder; the server recomputes sale and promo stacking so the browser never sets the charged amount.

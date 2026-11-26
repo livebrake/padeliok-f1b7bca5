@@ -3,6 +3,8 @@ import { z } from "zod";
 import { getRequest } from "@tanstack/react-start/server";
 import { validateCheckout, normalizePhone, FILE_EXT } from "@/lib/order-validation";
 import { applyPromo, normalizeCode, type PromoResult } from "@/lib/promo";
+import { planSale, SALE_PROMO_BLOCKED } from "@/lib/plan-sale";
+const SALE_COLS = "name, price, sale_active, sale_type, sale_value, sale_starts_at, sale_ends_at, sale_badge, sale_allow_promo";
 
 type AdminClient = (typeof import("@/integrations/supabase/client.server"))["supabaseAdmin"];
 async function resolvePromo(admin: AdminClient, rawCode: string, planKey: string, price: number) {
@@ -20,9 +22,11 @@ export const checkPromo = createServerFn({ method: "POST" })
   .handler(async ({ data }): Promise<PromoResult> => {
     if (!normalizeCode(data.code)) return { ok: false, message: "Įveskite nuolaidos kodą." };
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
-    const { data: pr } = await supabaseAdmin.from("plan_prices").select("price").eq("plan_key", data.plan.toLowerCase()).maybeSingle();
+    const { data: pr } = await supabaseAdmin.from("plan_prices").select(SALE_COLS).eq("plan_key", data.plan.toLowerCase()).maybeSingle();
     if (!pr) return { ok: false, message: "Nepasirinktas planas." };
-    return (await resolvePromo(supabaseAdmin, data.code, data.plan, Number(pr.price))).result;
+    const sale = planSale(pr);
+    if (!sale.allowPromo) return { ok: false, message: SALE_PROMO_BLOCKED };
+    return (await resolvePromo(supabaseAdmin, data.code, data.plan, sale.final)).result;
   });
 
 // Allowed plan keys only; actual prices live in the plan_prices table.
@@ -117,9 +121,13 @@ export const submitOrder = createServerFn({ method: "POST" })
     const { supabaseAdmin } = await import("@/integrations/supabase/client.server");
     // Price always comes from the database so admin price changes apply to checkout and Montonio.
     const { data: priceRow } = await supabaseAdmin
-      .from("plan_prices").select("name, price").eq("plan_key", v.plan.toLowerCase()).maybeSingle();
-    const plan = priceRow ? { name: priceRow.name, price: Number(priceRow.price) } : null;
+      .from("plan_prices").select(SALE_COLS).eq("plan_key", v.plan.toLowerCase()).maybeSingle();
+    const sale = priceRow ? planSale(priceRow) : null;
+    // Active sale price is recomputed here; the browser never sets the charged amount.
+    const plan = priceRow && sale ? { name: priceRow.name, price: sale.final, base: sale.base } : null;
     if (!plan || !(plan.price > 0)) return invalid("Nepavyko nustatyti plano kainos. Bandykite dar kartą.");
+    if (sale && !sale.allowPromo && normalizeCode(v.promoCode)) return invalid(SALE_PROMO_BLOCKED);
+    const saleLabel = sale && sale.discount > 0 ? `Akcija ${sale.tag}${sale.badge ? ` (${sale.badge})` : ""}` : null;
     // Discount is recomputed server-side; the order keeps a snapshot so later code edits never change history.
     let promo: { id: string; code: string; label: string; discount: number; final: number; note: string | null } | null = null;
     if (normalizeCode(v.promoCode)) {
@@ -151,11 +159,11 @@ export const submitOrder = createServerFn({ method: "POST" })
       service_area: v.serviceArea,
       plan_name: plan.name,
       price: charged,
-      original_price: plan.price,
-      discount_amount: promo?.discount ?? 0,
+      original_price: plan.base,
+      discount_amount: Math.round(((sale?.discount ?? 0) + (promo?.discount ?? 0)) * 100) / 100,
       promo_code: promo?.code ?? null,
       promo_code_id: promo?.id ?? null,
-      discount_label: promo?.label ?? null,
+      discount_label: [saleLabel, promo?.label].filter(Boolean).join(" + ") || null,
       promo_note: promo?.note ?? null,
       status: "Naujas",
       payment_status: "PENDING",

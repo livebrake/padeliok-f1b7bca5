@@ -197,6 +197,13 @@
       "when": 1795685185967,
       "tag": "0027_completed_order_reopening_reason",
       "breakpoints": true
+    },
+    {
+      "idx": 28,
+      "version": "7",
+      "when": 1795687077579,
+      "tag": "0028_plan_price_sales",
+      "breakpoints": true
     }
   ]
 }

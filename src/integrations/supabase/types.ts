@@ -408,6 +408,13 @@ export type Database = {
           name: string
           plan_key: string
           price: number
+          sale_active: boolean
+          sale_allow_promo: boolean
+          sale_badge: string | null
+          sale_ends_at: string | null
+          sale_starts_at: string | null
+          sale_type: string
+          sale_value: number | null
           updated_at: string
         }
         Insert: {
@@ -415,6 +422,13 @@ export type Database = {
           name: string
           plan_key: string
           price: number
+          sale_active?: boolean
+          sale_allow_promo?: boolean
+          sale_badge?: string | null
+          sale_ends_at?: string | null
+          sale_starts_at?: string | null
+          sale_type?: string
+          sale_value?: number | null
           updated_at?: string
         }
         Update: {
@@ -422,6 +436,13 @@ export type Database = {
           name?: string
           plan_key?: string
           price?: number
+          sale_active?: boolean
+          sale_allow_promo?: boolean
+          sale_badge?: string | null
+          sale_ends_at?: string | null
+          sale_starts_at?: string | null
+          sale_type?: string
+          sale_value?: number | null
           updated_at?: string
         }
         Relationships: []
