@@ -2,8 +2,9 @@ import { createServerFn } from '@tanstack/react-start';
 import { z } from 'zod';
 import { requireSupabaseAuth } from '@/integrations/supabase/auth-middleware';
 import { REPORT_FROM, REPORT_REPLY_TO, reportEmailErrors } from '@/lib/report-email';
+import { reportSendKey, validateReportResend } from '@/lib/order-workflow';
 
-const schema = z.object({ orderId: z.string().uuid(), path: z.string().min(1).max(500), subject: z.string(), body: z.string() });
+const schema = z.object({ orderId: z.string().uuid(), path: z.string().min(1).max(500), subject: z.string(), body: z.string(), expectedSentAt: z.string().nullable().default(null), confirmResend: z.boolean().default(false) });
 const esc = (s: string) => s.replace(/[&<>"']/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' })[c] ?? c);
 
 export const sendReportEmail = createServerFn({ method: 'POST' })
@@ -20,8 +21,9 @@ export const sendReportEmail = createServerFn({ method: 'POST' })
     const apiKey = process.env['RESEND_API_KEY'];
     if (!apiKey) throw new Error('Laiškų siuntimas nesukonfigūruotas.');
     const { supabaseAdmin } = await import('@/integrations/supabase/client.server');
-    const { data: order, error } = await supabaseAdmin.from('orders').select('id, email, order_number, response_file_paths').eq('id', data.orderId).maybeSingle();
+    const { data: order, error } = await supabaseAdmin.from('orders').select('id, email, order_number, response_file_paths, report_sent_at').eq('id', data.orderId).maybeSingle();
     if (error || !order) throw new Error('Užsakymas nerastas.');
+    validateReportResend(order.report_sent_at, data.expectedSentAt, data.confirmResend);
     if (!order.response_file_paths.includes(data.path)) throw new Error('Ataskaitos failas nerastas.');
     const { data: blob, error: dlError } = await supabaseAdmin.storage.from('order-documents').download(data.path);
     if (dlError || !blob) throw new Error('Nepavyko paimti ataskaitos failo.');
@@ -31,7 +33,7 @@ export const sendReportEmail = createServerFn({ method: 'POST' })
     const html = `<div style="font-family:Arial,Helvetica,sans-serif;max-width:600px;margin:0 auto;padding:24px;color:#111;font-size:15px;line-height:1.5">${esc(data.body).replace(/\n/g, '<br>')}</div>`;
     const res = await fetch('https://api.resend.com/emails', {
       method: 'POST',
-      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': `report-${order.id}-${data.path}-${Date.now()}` },
+      headers: { Authorization: `Bearer ${apiKey}`, 'Content-Type': 'application/json', 'Idempotency-Key': reportSendKey(order.id, order.report_sent_at) },
       body: JSON.stringify({ from: REPORT_FROM, reply_to: REPORT_REPLY_TO, to: [order.email], subject: data.subject.trim(), html, text: data.body, attachments: [{ filename: `Sklypo_analize_${order.order_number}.${ext}`, content: btoa(bin) }] }),
     });
     if (!res.ok) { console.error(`Resend report failed [${res.status}]: ${await res.text()}`); throw new Error(`Nepavyko išsiųsti laiško (${res.status}).`); }

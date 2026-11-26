@@ -1,7 +1,9 @@
 import { useState } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { toast } from 'sonner';
-import { Eye, FileText, Mail, MessageSquare, Upload } from 'lucide-react';
+import { CheckCircle, Eye, FileText, Mail, MessageSquare, Upload } from 'lucide-react';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Checkbox } from '@/components/ui/checkbox';
 import { useServerFn } from '@tanstack/react-start';
 import { Input } from '@/components/ui/input';
 import { sendReportEmail } from '@/lib/report.functions';
@@ -31,14 +33,17 @@ export function OrderDetails({ order, onClose, openFile, invoice }: { order: Tea
   const sendFn = useServerFn(sendReportEmail);
   const [sendPath, setSendPath] = useState<string | null>(null); const [sending, setSending] = useState(false);
   const [mail, setMail] = useState({ subject: '', body: '' });
+  const [confirmResend, setConfirmResend] = useState(false);
+  const [expectedSentAt, setExpectedSentAt] = useState<string | null>(null);
+  const sentLabel = order.report_sent_at ? new Date(order.report_sent_at).toLocaleString('lt-LT', { timeZone: 'Europe/Vilnius', dateStyle: 'short', timeStyle: 'short' }) : null;
   async function openSend(path: string) {
     const { data } = await supabase.from('email_templates').select('subject, body').eq('id', REPORT_TEMPLATE_ID).maybeSingle();
     const t = data ?? DEFAULT_REPORT_TEMPLATE; const v = reportVars(order);
-    setMail({ subject: fillTemplate(t.subject, v), body: fillTemplate(t.body, v) }); setSendPath(path);
+    setMail({ subject: fillTemplate(t.subject, v), body: fillTemplate(t.body, v) }); setConfirmResend(false); setExpectedSentAt(order.report_sent_at); setSendPath(path);
   }
   async function send() {
-    if (!sendPath) return; setSending(true);
-    try { await sendFn({ data: { orderId: order.id, path: sendPath, subject: mail.subject, body: mail.body } }); toast.success('Ataskaita išsiųsta klientui.'); setSendPath(null); qc.invalidateQueries({ queryKey: ['admin-orders'] }); qc.invalidateQueries({ queryKey: ['order-audit', order.id] }); }
+    if (!sendPath || sending || (expectedSentAt && !confirmResend)) return; setSending(true);
+    try { await sendFn({ data: { orderId: order.id, path: sendPath, subject: mail.subject, body: mail.body, expectedSentAt, confirmResend } }); toast.success('Ataskaita išsiųsta klientui.'); setSendPath(null); qc.invalidateQueries({ queryKey: ['admin-orders'] }); qc.invalidateQueries({ queryKey: ['order-audit', order.id] }); }
     catch (e) { toast.error(e instanceof Error ? e.message : 'Nepavyko išsiųsti.'); } finally { setSending(false); }
   }
   return <Dialog open onOpenChange={open => { if (!open) onClose(); }}><DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto w-[calc(100%-2rem)]">
@@ -61,16 +66,18 @@ export function OrderDetails({ order, onClose, openFile, invoice }: { order: Tea
         {order.file_paths.length ? <div className="flex flex-wrap gap-2">{order.file_paths.map((p,i) => <Button key={p} variant="outline" size="sm" onClick={() => openFile(p)}><FileText className="h-4 w-4 mr-1" />Kliento failas {i+1}</Button>)}</div> : <p className="text-sm text-muted-foreground">Dokumentų nėra arba jie pašalinti pasibaigus saugojimo terminui.</p>}
       </div>
       <div className="rounded-lg border p-4 space-y-3"><h4 className="text-sm font-medium">Paruošta analizė / atsakymas klientui</h4>
-        {order.response_file_paths.length > 0 && <div className="flex flex-wrap gap-2">{order.response_file_paths.map((p,i) => <div key={p} className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => openFile(p)}><FileText className="h-4 w-4 mr-1" />Atsakymas {i+1}</Button><Button size="sm" onClick={() => openSend(p)}><Mail className="h-4 w-4 mr-1" />Siųsti klientui el. paštu</Button></div>)}</div>}
+        {sentLabel && <Alert className="border-success/30 bg-success/10 text-success"><CheckCircle className="h-4 w-4" /><AlertTitle>Ataskaita jau išsiųsta klientui</AlertTitle><AlertDescription>Paskutinis siuntimas: {sentLabel} · {order.email}</AlertDescription></Alert>}
+        {order.response_file_paths.length > 0 && <div className="flex flex-wrap gap-2">{order.response_file_paths.map((p,i) => <div key={p} className="flex flex-wrap gap-2"><Button variant="outline" size="sm" onClick={() => openFile(p)}><FileText className="h-4 w-4 mr-1" />Atsakymas {i+1}</Button><Button variant={sentLabel ? 'outline' : 'default'} size="sm" onClick={() => void openSend(p)}><Mail className="h-4 w-4 mr-1" />{sentLabel ? 'Siųsti pakartotinai…' : 'Siųsti klientui el. paštu'}</Button></div>)}</div>}
         <input id="response-file" type="file" accept=".pdf,.png,.jpg,.jpeg" disabled={uploading} className="sr-only" onChange={e => { void upload(e.target.files?.[0]); e.target.value=''; }} />
         <Button asChild variant="outline" size="sm" disabled={uploading}><label htmlFor="response-file" className="cursor-pointer"><Upload className="h-4 w-4 mr-1" />{uploading ? 'Įkeliama…' : 'Įkelti paruoštą analizę (PDF, PNG, JPG)'}</label></Button>
       </div>
     </section>
     {sendPath && <Dialog open onOpenChange={o => { if (!o) setSendPath(null); }}><DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto"><DialogTitle>Siųsti ataskaitą klientui</DialogTitle><DialogDescription>Nuo: {REPORT_FROM} · Kam: {order.email}</DialogDescription>
+      {expectedSentAt && <><Alert className="border-warning/30 bg-warning/10"><AlertTitle>Pakartotinis siuntimas</AlertTitle><AlertDescription>Šiam užsakymui ataskaita jau siųsta {sentLabel}. Klientas gaus dar vieną laišką.</AlertDescription></Alert><div className="flex items-center gap-2"><Checkbox id="confirm-resend" checked={confirmResend} onCheckedChange={v => setConfirmResend(v === true)} /><Label htmlFor="confirm-resend">Patvirtinu, kad noriu siųsti pakartotinai</Label></div></>}
       <div className="space-y-1"><Label htmlFor="send-subject">Tema</Label><Input id="send-subject" maxLength={200} value={mail.subject} onChange={e => setMail(m => ({ ...m, subject: e.target.value }))} /></div>
       <div className="space-y-1"><Label htmlFor="send-body">Tekstas</Label><Textarea id="send-body" rows={12} maxLength={5000} value={mail.body} onChange={e => setMail(m => ({ ...m, body: e.target.value }))} /></div>
       <p className="text-xs text-muted-foreground">Priedas: įkelta ataskaita. Išsiuntus užsakymo būsena taps „Atlikta".</p>
-      <div className="flex justify-end gap-2"><Button variant="outline" onClick={() => setSendPath(null)}>Atšaukti</Button><Button disabled={sending} onClick={() => void send()}>{sending ? 'Siunčiama…' : 'Išsiųsti'}</Button></div>
+      <div className="flex justify-end gap-2"><Button variant="outline" disabled={sending} onClick={() => setSendPath(null)}>Atšaukti</Button><Button disabled={sending || (!!expectedSentAt && !confirmResend)} onClick={() => void send()}>{sending ? 'Siunčiama…' : 'Išsiųsti'}</Button></div>
     </DialogContent></Dialog>}
     <form className="border-t pt-4 space-y-2" onSubmit={e => { e.preventDefault(); save.mutate(); }}><Label htmlFor="order-note">Pridėti pastabą</Label><Textarea id="order-note" maxLength={2000} value={note} onChange={e => setNote(e.target.value)} /><Button type="submit" disabled={!note.trim() || save.isPending}>{save.isPending ? 'Saugoma…' : 'Išsaugoti'}</Button></form>
     <h3 className="font-semibold border-t pt-4">Užsakymo istorija</h3>{isLoading && <p>Įkeliama…</p>}{error && <p className="text-destructive">Nepavyko įkelti istorijos.</p>}

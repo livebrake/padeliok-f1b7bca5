@@ -30,6 +30,10 @@ import {
   DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogTitle, DialogDescription } from '@/components/ui/dialog';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { needsReopeningReason, validateStatusChange } from '@/lib/order-workflow';
 
 const STATUSES = [
   { id: "Naujas", label: "Naujas", cls: "border-transparent bg-destructive text-destructive-foreground" },
@@ -140,18 +144,22 @@ function Dashboard() {
   });
 
   const selectedOrder = orders?.find(o => o.id === selectedId);
+  const [statusChange, setStatusChange] = useState<{ id: string; status: string } | null>(null);
+  const [statusReason, setStatusReason] = useState('');
   const update = useMutation({
-    mutationFn: async ({ id, status }: { id: string; status: string }) => {
+    mutationFn: async ({ id, status, reason = '' }: { id: string; status: string; reason?: string }) => {
       if (!WORK_STATUSES.some(s => s === status)) throw new Error('Netinkama darbo būsena.');
-      const { error } = await supabase.rpc('change_team_order', { order_uuid: id, work_status: status });
+      validateStatusChange(orders?.find(o => o.id === id)?.status ?? '', status, reason);
+      const { error } = await supabase.rpc('change_team_order', { order_uuid: id, work_status: status, ...(reason.trim() ? { note_text: reason.trim() } : {}) });
       if (error) throw error;
     },
     onSuccess: (_d, v) => {
       qc.invalidateQueries({ queryKey: ["admin-orders"] });
       qc.invalidateQueries({ queryKey: ['order-audit', v.id] });
       toast.success(`Būsena pakeista į „${label(v.status)}“`);
+      setStatusChange(null); setStatusReason('');
     },
-    onError: () => toast.error("Nepavyko pakeisti būsenos."),
+    onError: (e) => toast.error(e.message || "Nepavyko pakeisti būsenos."),
   });
 
   const assign = useMutation({ mutationFn: async ({ id, member }: { id: string; member: string }) => {
@@ -418,7 +426,10 @@ function Dashboard() {
                       </DropdownMenuTrigger>
                       <DropdownMenuContent align="end">
                         {STATUSES.map((s) => (
-                          <DropdownMenuItem key={s.id} onClick={() => update.mutate({ id: o.id, status: s.id })}>{s.label}</DropdownMenuItem>
+                          <DropdownMenuItem key={s.id} disabled={s.id === o.status} onClick={() => {
+                            if (needsReopeningReason(o.status, s.id)) { setStatusReason(''); setStatusChange({ id: o.id, status: s.id }); }
+                            else update.mutate({ id: o.id, status: s.id });
+                          }}>{s.label}</DropdownMenuItem>
                         ))}
                       </DropdownMenuContent>
                     </DropdownMenu>
@@ -436,6 +447,7 @@ function Dashboard() {
         }} openFile={openFile}
           invoice={manager && wasCaptured(selectedOrder) ? { busy: invoiceBusy === selectedOrder.id, download: () => downloadInvoice(selectedOrder.id), preview: () => downloadInvoice(selectedOrder.id, true) } : undefined} />}
         {manager && invoicePreview && <InvoicePreview blob={invoicePreview.blob} number={invoicePreview.number} onClose={() => setInvoicePreview(null)} />}
+        {statusChange && <Dialog open onOpenChange={open => { if (!open && !update.isPending) setStatusChange(null); }}><DialogContent><DialogTitle>Pakeisti atlikto užsakymo būseną?</DialogTitle><DialogDescription>Nauja būsena: „{label(statusChange.status)}“. Nurodykite pakeitimo priežastį — ji bus išsaugota užsakymo istorijoje.</DialogDescription><form className="space-y-4" onSubmit={e => { e.preventDefault(); if (statusReason.trim() && !update.isPending) update.mutate({ ...statusChange, reason: statusReason }); }}><div className="space-y-2"><Label htmlFor="status-reason">Priežastis *</Label><Textarea id="status-reason" required maxLength={2000} value={statusReason} onChange={e => setStatusReason(e.target.value)} /></div><div className="flex justify-end gap-2"><Button type="button" variant="outline" disabled={update.isPending} onClick={() => setStatusChange(null)}>Atšaukti</Button><Button type="submit" disabled={!statusReason.trim() || update.isPending}>{update.isPending ? 'Saugoma…' : 'Patvirtinti'}</Button></div></form></DialogContent></Dialog>}
       </div>
     </main>
   );

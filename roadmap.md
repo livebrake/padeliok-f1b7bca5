@@ -20,3 +20,5 @@
 - [x] Add explicit required Kaunas city/district checkout selection with persisted service area; 30 validation/server tests pass, complete form blocks unavailable cities before upload/payment, desktop/mobile checked.
 - [x] Verify refund regression tests, isolated database concurrency/security and public webhook rejection; document provider-delivery limitations.
 - [ ] Verify actual Montonio sandbox refund delivery and authenticated report rendering — requires a provider refund and an authorized team session; no real refund initiated.
+- [x] Show report sent timestamp and explicit repeat-send confirmation; enforce nonempty reopening reason without a minimum length.
+- [x] Preserve completion dates on repeat sends and reset retention only upon actual reopening/recompletion; authenticated employee flow, one-character reason, persisted audit and completion dates verified without sending email.
