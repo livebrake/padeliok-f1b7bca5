@@ -4,7 +4,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 const { update } = vi.hoisted(() => ({ update: vi.fn() }));
 vi.mock("@/integrations/supabase/client", () => ({
   supabase: { from: () => ({
-    select: () => Promise.resolve({ data: [{ plan_key: "bazinis", name: "Bazinis", price: 49, sale_active: false, sale_type: "percent", sale_value: null, sale_starts_at: null, sale_ends_at: null, sale_badge: null, sale_allow_promo: false }], error: null }),
+    select: () => Promise.resolve({ data: [{ plan_key: "bazinis", name: "Bazinis", price: 49, description: "", features: [], popular: false, sale_active: false, sale_type: "percent", sale_value: null, sale_starts_at: null, sale_ends_at: null, sale_badge: null, sale_allow_promo: false }], error: null }),
     update: (value: unknown) => {
       update(value);
       return { eq: () => ({ select: () => Promise.resolve({ data: [{ plan_key: "bazinis" }], error: null }) }) };
@@ -37,8 +37,8 @@ describe("Plan price input", () => {
     expect(input).toHaveValue("49");
     fireEvent.change(input, { target: { value: "49,90" } });
     expect(input).toHaveValue("49,90");
-    fireEvent.click(screen.getByRole("button", { name: "Išsaugoti kainas" }));
+    fireEvent.click(screen.getByRole("button", { name: "Išsaugoti planus" }));
     expect(update).toHaveBeenCalledWith(expect.objectContaining({ price: 49.9, sale_active: false }));
-    await screen.findByRole("button", { name: "Išsaugoti kainas" });
+    await screen.findByRole("button", { name: "Išsaugoti planus" });
   });
 });

@@ -404,9 +404,12 @@ export type Database = {
       }
       plan_prices: {
         Row: {
+          description: string
+          features: string[]
           id: string
           name: string
           plan_key: string
+          popular: boolean
           price: number
           sale_active: boolean
           sale_allow_promo: boolean
@@ -418,9 +421,12 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          description?: string
+          features?: string[]
           id?: string
           name: string
           plan_key: string
+          popular?: boolean
           price: number
           sale_active?: boolean
           sale_allow_promo?: boolean
@@ -432,9 +438,12 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          description?: string
+          features?: string[]
           id?: string
           name?: string
           plan_key?: string
+          popular?: boolean
           price?: number
           sale_active?: boolean
           sale_allow_promo?: boolean

@@ -6,10 +6,11 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Badge } from "@/components/ui/badge";
+import { Plus, Trash2 } from "lucide-react";
 import { saleStatus } from "@/lib/plan-sale";
 
 type Sale = { active: boolean; type: "percent" | "fixed"; value: string; starts: string; ends: string; badge: string; allowPromo: boolean };
-type Row = { plan_key: string; name: string; price: string; sale: Sale };
+type Row = { plan_key: string; name: string; price: string; desc: string; features: string[]; popular: boolean; sale: Sale };
 const ORDER = ["bazinis", "standartinis", "premium"];
 const EMPTY: Sale = { active: false, type: "percent", value: "", starts: "", ends: "", badge: "", allowPromo: false };
 
@@ -79,10 +80,10 @@ export function PlanPricesSettings() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    supabase.from("plan_prices").select("plan_key, name, price, sale_active, sale_type, sale_value, sale_starts_at, sale_ends_at, sale_badge, sale_allow_promo").then(({ data, error }) => {
+    supabase.from("plan_prices").select("plan_key, name, price, description, features, popular, sale_active, sale_type, sale_value, sale_starts_at, sale_ends_at, sale_badge, sale_allow_promo").then(({ data, error }) => {
       if (error) { toast.error("Nepavyko įkelti kainų."); return; }
       setRows((data ?? []).sort((a, b) => ORDER.indexOf(a.plan_key) - ORDER.indexOf(b.plan_key)).map((r) => ({
-        plan_key: r.plan_key, name: r.name, price: String(r.price).replace(".", ","),
+        plan_key: r.plan_key, name: r.name, desc: r.description, features: r.features ?? [], popular: r.popular, price: String(r.price).replace(".", ","),
         sale: { active: r.sale_active, type: r.sale_type === "fixed" ? "fixed" : "percent", value: r.sale_value == null ? "" : String(r.sale_value).replace(".", ","),
           starts: toLocal(r.sale_starts_at), ends: toLocal(r.sale_ends_at), badge: r.sale_badge ?? "", allowPromo: r.sale_allow_promo },
       })));
@@ -96,6 +97,9 @@ export function PlanPricesSettings() {
     for (const r of parsed) {
       const err = saleError(r.sale);
       if (err) return void toast.error(`${r.name}: ${err}`);
+      if (!r.name.trim() || r.name.length > 40) return void toast.error("Plano pavadinimas privalomas (iki 40 simbolių).");
+      if (r.desc.length > 200) return void toast.error(`${r.name}: paantraštė – iki 200 simbolių.`);
+      if (r.features.some((f) => !f.trim())) return void toast.error(`${r.name}: ištrinkite tuščius paslaugų punktus.`);
       if (r.sale.active && r.sale.type === "fixed" && r.value - num(r.sale.value) < 1)
         return void toast.error(`${r.name}: nuolaida per didelė.`);
     }
@@ -104,6 +108,7 @@ export function PlanPricesSettings() {
       const s = r.sale;
       const { data, error } = await supabase.from("plan_prices").update({
         price: Math.round(r.value * 100) / 100,
+        name: r.name.trim(), description: r.desc.trim(), features: r.features.map((f) => f.trim()), popular: r.popular,
         sale_active: s.active, sale_type: s.type, sale_value: s.active ? num(s.value) : null,
         sale_starts_at: s.active && s.starts ? new Date(s.starts).toISOString() : null,
         sale_ends_at: s.active && s.ends ? new Date(s.ends).toISOString() : null,
@@ -116,14 +121,14 @@ export function PlanPricesSettings() {
     }
     setRows(list);
     setSaving(false);
-    toast.success("Kainos ir akcijos atnaujintos");
+    toast.success("Planai atnaujinti");
   };
 
   const update = (i: number, patch: Partial<Row>) => rows && setRows(rows.map((x, j) => (j === i ? { ...x, ...patch } : x)));
 
   return (
     <div className="space-y-4 rounded-lg border border-border p-5">
-      <h3 className="text-lg font-semibold">Planų kainos ir akcijos</h3>
+      <h3 className="text-lg font-semibold">Planai, kainos ir akcijos</h3>
       {!rows ? <p className="text-sm text-muted-foreground">Įkeliama…</p> : <>
         <div className="space-y-2 rounded-md border border-dashed border-border p-3">
           <p className="text-sm font-semibold">Bendra akcija visiems planams</p>
@@ -141,12 +146,29 @@ export function PlanPricesSettings() {
               </div>
               <Input id={`price-${r.plan_key}`} inputMode="decimal" value={r.price}
                 onChange={(e) => { if (isPriceInput(e.target.value)) update(i, { price: e.target.value }); }} />
+              <div className="space-y-2 rounded-md border border-border p-3 text-sm">
+                <Label htmlFor={`name-${r.plan_key}`}>Pavadinimas</Label>
+                <Input id={`name-${r.plan_key}`} maxLength={40} value={r.name} onChange={(e) => update(i, { name: e.target.value })} />
+                <Label htmlFor={`desc-${r.plan_key}`}>Paantraštė</Label>
+                <Input id={`desc-${r.plan_key}`} maxLength={200} value={r.desc} onChange={(e) => update(i, { desc: e.target.value })} />
+                <label className="flex items-center gap-2">
+                  <Checkbox checked={r.popular} onCheckedChange={(c) => update(i, { popular: c === true })} /> Žyma „Populiariausias“
+                </label>
+                <p className="font-medium">Įtrauktos paslaugos</p>
+                {r.features.map((f, k) => (
+                  <div key={k} className="flex gap-1">
+                    <Input aria-label={`Paslauga ${k + 1}`} value={f} onChange={(e) => update(i, { features: r.features.map((x, m) => (m === k ? e.target.value : x)) })} />
+                    <Button type="button" variant="ghost" size="icon" aria-label="Pašalinti punktą" onClick={() => update(i, { features: r.features.filter((_, m) => m !== k) })}><Trash2 className="h-4 w-4" /></Button>
+                  </div>
+                ))}
+                <Button type="button" variant="outline" size="sm" onClick={() => update(i, { features: [...r.features, ""] })}><Plus className="h-4 w-4" /> Pridėti punktą</Button>
+              </div>
               <SaleFields id={r.plan_key} s={r.sale} onChange={(sale) => update(i, { sale })} />
             </div>
           ))}
         </div>
       </>}
-      <Button onClick={() => rows && void persist(rows)} disabled={!rows || saving}>{saving ? "Saugoma…" : "Išsaugoti kainas"}</Button>
+      <Button onClick={() => rows && void persist(rows)} disabled={!rows || saving}>{saving ? "Saugoma…" : "Išsaugoti planus"}</Button>
     </div>
   );
 }

@@ -9,6 +9,10 @@ vi.mock("@/lib/gate.functions", () => ({
   unlockSite: async () => ({ ok: true }),
 }));
 
+vi.mock("@/lib/plans.functions", () => ({
+  plansQuery: { queryKey: ["plans"], queryFn: async () => [] },
+}));
+
 import { routeTree } from "@/routeTree.gen";
 
 async function renderAt(path: string) {

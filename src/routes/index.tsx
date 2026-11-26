@@ -37,6 +37,8 @@ import {
 } from "lucide-react";
 const fmtPrice = (n: number) => (Number.isInteger(n) ? String(n) : n.toFixed(2)).replace(".", ",");
 import { toast } from "sonner";
+import { useSuspenseQuery } from "@tanstack/react-query";
+import { plansQuery } from "@/lib/plans.functions";
 import { submitOrder, checkPromo, createUploadUrl } from "@/lib/orders.functions";
 import { getPaymentMethods } from "@/lib/payments.functions";
 import { withRequestTimeout } from "@/lib/request-timeout";
@@ -59,49 +61,13 @@ export const Route = createFileRoute("/")({
       { name: "twitter:card", content: "summary_large_image" },
     ],
   }),
+  loader: ({ context }) => context.queryClient.ensureQueryData(plansQuery),
+  errorComponent: () => <div role="alert" className="p-10 text-center">Nepavyko įkelti puslapio. Atnaujinkite langą.</div>,
+  notFoundComponent: () => <div className="p-10 text-center">Puslapis nerastas.</div>,
   component: Index,
 });
 
 type Plan = { id: string; name: string; price: number; desc: string; features: string[]; popular?: boolean; sale?: PlanSale | undefined };
-const PLANS: Plan[] = [
-  {
-    id: "bazinis",
-    name: "Bazinis",
-    price: 49,
-    desc: "Greitas sklypo patikrinimas",
-    features: [
-      "Pagrindiniai sklypo rodikliai",
-      "Užstatymo zonų patikrinimas",
-      "Ribojimų ir apsaugos zonų patikra",
-      "Specialisto išvada (PDF)",
-    ],
-  },
-  {
-    id: "standartinis",
-    name: "Standartinis",
-    price: 99,
-    popular: true,
-    desc: "Optimalus pasirinkimas perkant / parduodant",
-    features: [
-      "Viskas iš Bazinio plano",
-      "Komunikacijų įvertinimas (elektra, vanduo, dujos)",
-      "Privažiavimo patikra",
-      "Servitutų patikra",
-    ],
-  },
-  {
-    id: "premium",
-    name: "Premium",
-    price: 199,
-    desc: "Išsami analizė prieš projektavimą",
-    features: [
-      "Viskas iš Standartinio plano",
-      "Detaliojo plano / specialiųjų sąlygų analizė",
-      "Profesionalo komentarai",
-      "Preliminarus užstatymo plotas",
-    ],
-  },
-];
 
 const NAV = [
   ["Apie paslaugą", "#apie"],
@@ -139,33 +105,11 @@ function Btn({
 }
 
 function usePlans(): Plan[] {
-  const [prices, setPrices] = useState<Record<string, SaleRow>>({});
-  useEffect(() => {
-    // Default prices stay visible until (and unless) the database answers.
-    const controller = new AbortController();
-    const timer = setTimeout(() => controller.abort(), 8000);
-    Promise.resolve(supabase.from("plan_prices").select("plan_key, price, sale_active, sale_type, sale_value, sale_starts_at, sale_ends_at, sale_badge, sale_allow_promo").abortSignal(controller.signal))
-      .then(
-        ({ data }) => {
-          if (controller.signal.aborted) return;
-          if (data)
-            setPrices(
-              Object.fromEntries(data.filter((r) => Number(r.price) > 0).map((r) => [r.plan_key, r])),
-            );
-        },
-        () => undefined,
-      )
-      .finally(() => clearTimeout(timer));
-    return () => {
-      controller.abort();
-      clearTimeout(timer);
-    };
-  }, []);
-  return PLANS.map((p) => {
-    const row = prices[p.id];
-    if (!row) return p;
-    const sale = planSale(row);
-    return { ...p, price: sale.final, sale: sale.status === "active" ? sale : undefined };
+  const { data } = useSuspenseQuery(plansQuery);
+  return data.map((r) => {
+    const sale = planSale(r as SaleRow);
+    return { id: r.plan_key, name: r.name, desc: r.description, features: r.features, popular: r.popular,
+      price: sale.final, sale: sale.status === "active" ? sale : undefined };
   });
 }
 
