@@ -8,6 +8,10 @@ import { Label } from "@/components/ui/label";
 type Row = { plan_key: string; name: string; price: string };
 const ORDER = ["bazinis", "standartinis", "premium"];
 
+export function isPriceInput(value: string): boolean {
+  return /^[0-9]*(?:[,.][0-9]*)?$/.test(value);
+}
+
 export function PlanPricesSettings() {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [saving, setSaving] = useState(false);
@@ -23,7 +27,7 @@ export function PlanPricesSettings() {
   const save = async (): Promise<void> => {
     if (!rows) return;
     const parsed = rows.map((r) => ({ ...r, value: Number(r.price.replace(",", ".")) }));
-    if (parsed.some((r) => !Number.isFinite(r.value) || r.value <= 0 || r.value >= 100000))
+    if (parsed.some((r) => !isPriceInput(r.price) || !Number.isFinite(r.value) || r.value <= 0 || r.value >= 100000))
       return void toast.error("Įveskite teigiamą kainą eurais (pvz., 49 arba 49,90).");
     setSaving(true);
     for (const r of parsed) {
@@ -47,7 +51,10 @@ export function PlanPricesSettings() {
             <div key={r.plan_key} className="space-y-1.5">
               <Label htmlFor={`price-${r.plan_key}`}>{r.name} (€)</Label>
               <Input id={`price-${r.plan_key}`} inputMode="decimal" value={r.price}
-                onChange={(e) => setRows(rows.map((x, j) => (j === i ? { ...x, price: e.target.value } : x)))} />
+                onChange={(e) => {
+                  const value = e.target.value;
+                  if (isPriceInput(value)) setRows(rows.map((x, j) => (j === i ? { ...x, price: value } : x)));
+                }} />
             </div>
           ))}
         </div>
