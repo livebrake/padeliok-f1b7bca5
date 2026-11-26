@@ -94,6 +94,8 @@ export function PlanPricesSettings() {
     const parsed = list.map((r) => ({ ...r, value: num(r.price) }));
     if (parsed.some((r) => !isPriceInput(r.price) || !Number.isFinite(r.value) || r.value <= 0 || r.value >= 100000))
       return void toast.error("Įveskite teigiamą kainą eurais (pvz., 49 arba 49,90).");
+    if (parsed.filter((r) => r.popular).length > 1)
+      return void toast.error("Žymą „Populiariausias“ gali turėti tik vienas planas.");
     for (const r of parsed) {
       const err = saleError(r.sale);
       if (err) return void toast.error(`${r.name}: ${err}`);
@@ -152,7 +154,7 @@ export function PlanPricesSettings() {
                 <Label htmlFor={`desc-${r.plan_key}`}>Paantraštė</Label>
                 <Input id={`desc-${r.plan_key}`} maxLength={200} value={r.desc} onChange={(e) => update(i, { desc: e.target.value })} />
                 <label className="flex items-center gap-2">
-                  <Checkbox checked={r.popular} onCheckedChange={(c) => update(i, { popular: c === true })} /> Žyma „Populiariausias“
+                  <Checkbox checked={r.popular} onCheckedChange={(c) => rows && setRows(rows.map((x, j) => ({ ...x, popular: j === i ? c === true : c === true ? false : x.popular })))} /> Žyma „Populiariausias“
                 </label>
                 <p className="font-medium">Įtrauktos paslaugos</p>
                 {r.features.map((f, k) => (
