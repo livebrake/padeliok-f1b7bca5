@@ -40,6 +40,7 @@ function TeamManager() {
   const [fieldErrors, setFieldErrors] = useState<{ name?: string; email?: string }>({});
   const [name, setName] = useState(''); const [email, setEmail] = useState(''); const [role, setRole] = useState('employee');
   const [editing, setEditing] = useState<Member | null>(null);
+  const [showInactive, setShowInactive] = useState(false);
   const { data: members, error, isLoading } = useQuery({ queryKey: ['team-management'], queryFn: async () => {
     const [{ data: members, error }, { data: roles, error: roleError }] = await Promise.all([supabase.from('team_members').select('*').order('created_at'), supabase.from('team_roles').select('*')]);
     if (error || roleError) throw error ?? roleError;
@@ -65,7 +66,8 @@ function TeamManager() {
       </form>
       <div className="border-t" />
       {isLoading && <p>Įkeliama…</p>}{error && <p className="text-destructive">Nepavyko įkelti komandos.</p>}
-      {members?.map(m => <div key={m.id} className={`${COLS} py-1`}>
+      {(() => { const n = members?.filter(m => !m.is_active).length ?? 0; return n > 0 ? <div className="flex items-center justify-end gap-2 text-sm text-muted-foreground"><Label htmlFor="show-inactive">Rodyti ir neaktyvius ({n})</Label><Switch id="show-inactive" checked={showInactive} onCheckedChange={setShowInactive} /></div> : null; })()}
+      {members?.filter(m => showInactive || m.is_active).map(m => <div key={m.id} className={`${COLS} py-1`}>
         <span className="font-medium truncate">{m.name}</span>
         <span className="truncate text-sm">{m.email}</span>
         <span className="text-sm">{roleLabel(m.role)}</span>
