@@ -1,8 +1,8 @@
 import { useQuery } from '@tanstack/react-query';
 import { supabase } from '@/integrations/supabase/client';
-import { financePeriodSummary, formatEur, type FinancePeriod, type TeamOrder } from '@/lib/team-rules';
+import { financePeriodSummary, formatEur, type CustomRange, type FinancePeriod, type TeamOrder } from '@/lib/team-rules';
 
-export function FinanceOverview({ orders, period }: { orders: TeamOrder[]; period: FinancePeriod }) {
+export function FinanceOverview({ orders, period, custom }: { orders: TeamOrder[]; period: FinancePeriod; custom?: CustomRange }) {
   const { data, error } = useQuery({ queryKey: ['finance-refunds'], queryFn: async () => {
     const { data, error } = await supabase.from('order_refunds').select('order_id,amount_cents,status,event_at');
     if (error) throw error;
@@ -10,7 +10,7 @@ export function FinanceOverview({ orders, period }: { orders: TeamOrder[]; perio
   } });
   if (error) return <p className="text-destructive">Nepavyko įkelti grąžinimų suvestinės.</p>;
   if (!data) return <p className="text-muted-foreground">Įkeliama finansų suvestinė…</p>;
-  const f = financePeriodSummary(orders, data, period);
+  const f = financePeriodSummary(orders, data, period, new Date(), custom);
   return <dl className="grid gap-6 sm:grid-cols-3">
     <div><dt className="text-muted-foreground">Bendros pajamos</dt><dd className="text-3xl font-bold">{formatEur(f.gross)}</dd></div>
     <div><dt className="text-muted-foreground">Grąžintos lėšos klientams</dt><dd className="text-3xl font-bold">{formatEur(f.refunds)}</dd></div>

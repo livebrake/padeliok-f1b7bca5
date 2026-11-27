@@ -39,9 +39,9 @@ function statusBadge(r: Row) {
   const st = saleStatus({ price: 0, sale_active: r.sale.active, sale_type: r.sale.type, sale_value: num(r.sale.value),
     sale_starts_at: r.sale.starts ? new Date(r.sale.starts).toISOString() : null,
     sale_ends_at: r.sale.ends ? new Date(r.sale.ends).toISOString() : null, sale_badge: null, sale_allow_promo: false });
-  if (st === "active") return <Badge className="bg-success text-success-foreground">Aktyvi</Badge>;
-  if (st === "scheduled") return <Badge className="bg-primary text-primary-foreground">Suplanuota nuo {r.sale.starts.replace("T", " ")}</Badge>;
-  if (st === "expired") return <Badge variant="secondary">Pasibaigusi</Badge>;
+  if (st === "active") return <Badge className="bg-success text-success-foreground">Akcija aktyvi</Badge>;
+  if (st === "scheduled") return <Badge className="bg-primary text-primary-foreground">Akcija suplanuota nuo {r.sale.starts.replace("T", " ")}</Badge>;
+  if (st === "expired" && r.sale.ends && Date.now() - new Date(r.sale.ends).getTime() < 48 * 3600e3) return <Badge variant="secondary">Akcija pasibaigusi</Badge>;
   return null;
 }
 

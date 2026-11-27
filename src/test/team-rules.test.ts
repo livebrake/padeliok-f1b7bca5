@@ -28,3 +28,19 @@ describe('finance periods', () => {
     expect(inPeriod({ created_at: new Date(2020, 0, 1).toISOString() }, 'all', now)).toBe(true);
   });
 });
+
+import { saleSummary as _ss, periodRange as _pr } from '@/lib/team-rules';
+describe('sale summary and custom range', () => {
+  it('splits paid orders into sale vs full price by snapshot label', () => {
+    const o = (plan_name: string, cents: number, discount_label: string | null, promo_code: string | null = null) => ({ plan_name, payment_status: 'PAID', captured_amount_cents: cents, discount_label, promo_code, discount_amount: 0 });
+    const s = _ss([o('Premium', 13930, 'Akcija -30%'), o('Bazinis', 4900, null), o('Bazinis', 4410, 'Kodas -10%', 'X'), { ...o('Premium', 9999, 'Akcija -30%'), payment_status: 'PENDING', captured_amount_cents: null }]);
+    expect(s.sale.count).toBe(1); expect(s.full.count).toBe(2);
+    expect(s.channels).toEqual({ sale: 139.3, promo: 44.1, none: 49 });
+    expect(s.bySale[0]?.label).toBe('Akcija -30%');
+  });
+  it('custom range includes the whole end day', () => {
+    const r = _pr('custom', new Date(), { from: '2026-03-01', to: '2026-03-01' })!;
+    expect(r[1].getTime() - r[0].getTime()).toBe(86400000);
+    expect(_pr('custom', new Date(), {})).toBeNull();
+  });
+});

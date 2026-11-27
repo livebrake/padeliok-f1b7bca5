@@ -33,11 +33,20 @@ export function financeSummary(orders: FinancialOrder[]) {
   return { gross, refunds, revenue, count: paid.length, average: paid.length ? gross / paid.length : 0 };
 }
 export const formatEur = (n: number) => `${n.toLocaleString('lt-LT', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).replace(/\u00a0/g, ' ')} €`;
-export type FinancePeriod = 'month' | 'last_month' | 'quarter' | 'year' | 'all';
+export type FinancePeriod = 'month' | 'last_month' | 'quarter' | 'year' | 'all' | 'custom';
+/** Custom range as YYYY-MM-DD dates, both inclusive (local time). */
+export type CustomRange = { from?: string; to?: string };
 export const FINANCE_PERIODS: { id: FinancePeriod; label: string }[] = [
-  { id: 'month', label: 'Šis mėnuo' }, { id: 'last_month', label: 'Praėjęs mėnuo' }, { id: 'quarter', label: 'Šis ketvirtis' }, { id: 'year', label: 'Šie metai' }, { id: 'all', label: 'Visas laikas' },
+  { id: 'month', label: 'Šis mėnuo' }, { id: 'last_month', label: 'Praėjęs mėnuo' }, { id: 'quarter', label: 'Šis ketvirtis' }, { id: 'year', label: 'Šie metai' }, { id: 'all', label: 'Visas laikas' }, { id: 'custom', label: 'Pasirinktinis' },
 ];
-export function periodRange(p: FinancePeriod, now = new Date()): [Date, Date] | null {
+export function periodRange(p: FinancePeriod, now = new Date(), custom?: CustomRange): [Date, Date] | null {
+  if (p === 'custom') {
+    const d = (v?: string) => { const m = /^(\d{4})-(\d{2})-(\d{2})$/.exec(v ?? ''); return m ? new Date(+m[1]!, +m[2]! - 1, +m[3]!) : null; };
+    const f = d(custom?.from), t = d(custom?.to);
+    if (!f && !t) return null;
+    const end = t ? new Date(t.getFullYear(), t.getMonth(), t.getDate() + 1) : new Date(8.64e15);
+    return [f ?? new Date(0), end];
+  }
   const y = now.getFullYear(), m = now.getMonth();
   if (p === 'month') return [new Date(y, m, 1), new Date(y, m + 1, 1)];
   if (p === 'last_month') return [new Date(y, m - 1, 1), new Date(y, m, 1)];
@@ -46,18 +55,18 @@ export function periodRange(p: FinancePeriod, now = new Date()): [Date, Date] | 
   return null;
 }
 /** Paid orders are dated by paid_at, falling back to created_at. */
-export function inPeriod(o: { paid_at?: string | null; created_at: string }, p: FinancePeriod, now = new Date()) {
-  const r = periodRange(p, now); if (!r) return true;
+export function inPeriod(o: { paid_at?: string | null; created_at: string }, p: FinancePeriod, now = new Date(), custom?: CustomRange) {
+  const r = periodRange(p, now, custom); if (!r) return true;
   const t = new Date(o.paid_at ?? o.created_at).getTime();
   return t >= r[0].getTime() && t < r[1].getTime();
 }
 /** Captures use payment dates; refunds use observed successful transaction dates. */
-export function financePeriodSummary(orders: (FinancialOrder & { id: string; paid_at?: string | null; created_at: string })[], refunds: { order_id: string; amount_cents: number; status: string; event_at: string }[], period: FinancePeriod, now = new Date()) {
-  const paid = orders.filter(o => wasCaptured(o) && inPeriod(o, period, now));
+export function financePeriodSummary(orders: (FinancialOrder & { id: string; paid_at?: string | null; created_at: string })[], refunds: { order_id: string; amount_cents: number; status: string; event_at: string }[], period: FinancePeriod, now = new Date(), custom?: CustomRange) {
+  const paid = orders.filter(o => wasCaptured(o) && inPeriod(o, period, now, custom));
   const gross = paid.reduce((s, o) => s + capturedCents(o), 0);
-  const refunded = period === 'all'
+  const refunded = periodRange(period, now, custom) === null
     ? orders.reduce((s, o) => s + refundedCents(o), 0)
-    : refunds.filter(r => r.status === 'SUCCESSFUL' && orders.some(o => o.id === r.order_id && wasCaptured(o)) && inPeriod({ created_at: r.event_at }, period, now)).reduce((s, r) => s + r.amount_cents, 0);
+    : refunds.filter(r => r.status === 'SUCCESSFUL' && orders.some(o => o.id === r.order_id && wasCaptured(o)) && inPeriod({ created_at: r.event_at }, period, now, custom)).reduce((s, r) => s + r.amount_cents, 0);
   return { gross: gross / 100, refunds: refunded / 100, revenue: (gross - refunded) / 100, count: paid.length, average: paid.length ? gross / 100 / paid.length : 0 };
 }
 export const PLAN_KEYS = ['Bazinis', 'Standartinis', 'Premium'] as const;
@@ -91,4 +100,29 @@ export function promoCodeStats(orders: (FinancialOrder & { discount_amount?: unk
 export function matchesPromoFilter(r: { code: string; note?: string | null }, q: string) {
   const t = q.trim().toLowerCase(); if (!t) return true;
   return r.code.toLowerCase().includes(t) || (r.note ?? '').toLowerCase().includes(t);
+}
+
+/** Plan-sale label from the order snapshot ("Akcija -30% (badge)"), or null when bought without a sale. */
+export function saleLabelOf(o: { discount_label?: string | null }) {
+  return (o.discount_label ?? '').split(' + ').find(p => p.startsWith('Akcija ')) ?? null;
+}
+/** Sale vs full-price comparison on paid orders, plus per-sale and per-plan breakdowns. Uses order snapshots only. */
+export function saleSummary(orders: (FinancialOrder & { plan_name: string; discount_label?: string | null; promo_code?: string | null; discount_amount?: unknown })[]) {
+  const paid = orders.filter(wasCaptured);
+  const onSale = paid.filter(o => saleLabelOf(o));
+  const full = paid.filter(o => !saleLabelOf(o));
+  const rev = (l: typeof paid) => l.reduce((s, o) => s + netCents(o), 0) / 100;
+  const disc = (l: typeof paid) => l.reduce((s, o) => s + moneyCents(toPrice(o.discount_amount)), 0) / 100;
+  const avg = (l: typeof paid) => l.length ? rev(l) / l.length : 0;
+  const share = (n: number) => paid.length ? (n / paid.length) * 100 : 0;
+  const labels = [...new Set(onSale.map(o => saleLabelOf(o)!))];
+  const bySale = labels.map(label => { const l = onSale.filter(o => saleLabelOf(o) === label); const plans = [...new Set(l.map(o => o.plan_name))].sort(); return { label, plans, count: l.length, revenue: rev(l), discount: disc(l), average: avg(l) }; }).sort((a, b) => b.revenue - a.revenue);
+  const byPlan = PLAN_KEYS.map(name => { const m = (o: { plan_name: string }) => o.plan_name.trim().toLowerCase() === name.toLowerCase(); const s = onSale.filter(m), f = full.filter(m); return { name, saleCount: s.length, fullCount: f.length, saleRevenue: rev(s), fullRevenue: rev(f) }; });
+  const promoOnly = paid.filter(o => o.promo_code && !saleLabelOf(o));
+  return {
+    sale: { count: onSale.length, revenue: rev(onSale), discount: disc(onSale), average: avg(onSale), share: share(onSale.length) },
+    full: { count: full.length, revenue: rev(full), average: avg(full), share: share(full.length) },
+    channels: { sale: rev(onSale), promo: rev(promoOnly), none: rev(full.filter(o => !o.promo_code)) },
+    bySale, byPlan,
+  };
 }
